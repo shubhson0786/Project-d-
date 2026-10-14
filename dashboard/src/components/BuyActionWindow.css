@@ -1,0 +1,31 @@
+.order-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: rgba(15,23,42,.42); backdrop-filter: blur(2px); }
+.order-window { width: min(520px,100%); overflow: hidden; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; box-shadow: 0 24px 70px rgba(15,23,42,.25); animation: order-enter 160ms ease-out; }
+.order-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 24px; color: #fff; background: #2563eb; }
+.order-sell .order-header { background: #e45125; }
+.order-side { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.order-header h2 { margin: 3px 0 2px; font-size: 22px; }
+.order-header p { margin: 0; font-size: 12px; opacity: .8; }
+.order-close { border: 0; padding: 0 4px; color: #fff; background: transparent; font-size: 28px; line-height: 1; cursor: pointer; opacity: .8; }
+.order-close:hover { opacity: 1; }
+.order-body { padding: 24px; }
+.order-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.order-fields label { color: #64748b; font-size: 12px; font-weight: 600; }
+.order-fields input { width: 100%; height: 44px; margin-top: 7px; padding: 0 12px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; background: #fff; font-size: 16px; outline: none; }
+.order-fields input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.order-sell .order-fields input:focus { border-color: #e45125; box-shadow: 0 0 0 3px rgba(228,81,37,.12); }
+.price-input { position: relative; }
+.price-input span { position: absolute; left: 12px; top: 20px; z-index: 1; color: #64748b; font-size: 15px; }
+.price-input input { padding-left: 28px; }
+.order-summary { display: flex; justify-content: space-between; margin-top: 22px; padding: 16px; border-radius: 7px; color: #64748b; background: #f8fafc; font-size: 13px; }
+.order-summary strong { color: #0f172a; font-size: 15px; }
+.order-error { margin: 14px 0 0; color: #c2410c; font-size: 13px; }
+.order-footer { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+.order-footer > span { color: #94a3b8; font-size: 11px; }
+.order-footer > div { display: flex; gap: 8px; }
+.order-button { min-width: 88px; height: 40px; padding: 0 16px; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.order-button.secondary { border: 1px solid #cbd5e1; color: #475569; background: #fff; }
+.order-button.primary { color: #fff; background: #2563eb; }
+.order-sell .order-button.primary { background: #e45125; }
+.order-button:disabled { cursor: not-allowed; opacity: .5; }
+@keyframes order-enter { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+@media (max-width: 520px) { .order-fields { grid-template-columns: 1fr; } .order-footer { align-items: stretch; flex-direction: column; gap: 12px; } .order-footer > span { display: none; } .order-footer > div, .order-button { flex: 1; } }

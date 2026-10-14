@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Build and hosting output
+build/
+dist/
+.vercel/
+coverage/
+
+# Local caches and generated previews
+.ppt_build/
+presentation_output/
+report_render/
+.frontend-git-backup/
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+*.log
+~$*
