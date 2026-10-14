@@ -38,7 +38,10 @@ function Signup() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not continue.");
       localStorage.setItem("stashflowUser", JSON.stringify(data.user));
-      window.location.assign(DASHBOARD_URL);
+      const destination = new URL(DASHBOARD_URL);
+      destination.searchParams.set("name", data.user.name);
+      destination.searchParams.set("email", data.user.email);
+      window.location.assign(destination.toString());
     } catch (requestError) {
       setError(requestError.message);
     } finally {

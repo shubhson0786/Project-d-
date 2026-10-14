@@ -339,6 +339,73 @@ hr {
   color: rgb(223, 91, 43);
 }
 
+.profile-wrap { position: relative; }
+.profile { border: 0; background: transparent; font: inherit; padding: 6px 8px; }
+.profile-chevron { color: #8a94a6; font-size: 14px; margin-left: 2px; }
+.profile-dropdown { position: absolute; z-index: 30; right: 0; top: calc(100% + 10px); width: 240px; padding: 10px; border: 1px solid #e8ebf0; border-radius: 14px; background: #fff; box-shadow: 0 18px 50px rgba(26, 36, 55, .16); }
+.profile-dropdown::before { content: ""; position: absolute; right: 24px; top: -6px; width: 10px; height: 10px; background: #fff; border-left: 1px solid #e8ebf0; border-top: 1px solid #e8ebf0; transform: rotate(45deg); }
+.profile-dropdown > div { padding: 10px 12px 12px; border-bottom: 1px solid #eef0f4; }
+.profile-dropdown strong, .profile-dropdown small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-dropdown strong { color: #172033; font-size: 14px; }
+.profile-dropdown small { color: #7b8495; margin-top: 4px; }
+.profile-dropdown a { display: flex; justify-content: space-between; padding: 11px 12px 7px; color: #344054; text-decoration: none; font-size: 13px; font-weight: 600; }
+.profile-dropdown a:hover { color: #f0642f; }
+
+.profile-page { min-height: calc(100vh - 70px); padding: 38px 42px 60px; background: #f7f8fa; color: #172033; }
+.profile-hero { display: flex; align-items: center; gap: 22px; padding: 30px; color: #fff; background: linear-gradient(120deg, #172033, #293958); border-radius: 24px; box-shadow: 0 18px 55px rgba(25, 35, 56, .16); }
+.profile-avatar-large { width: 78px; height: 78px; flex: 0 0 78px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #f47b4a, #e44c73); font-size: 24px; font-weight: 700; box-shadow: 0 9px 25px rgba(228, 76, 115, .3); }
+.profile-hero h1 { margin: 3px 0 5px; font-size: 28px; }
+.profile-hero p { margin: 0; color: #cfd6e4; }
+.profile-hero .eyebrow, .profile-modal .eyebrow { color: #f8a27e; letter-spacing: .12em; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.profile-primary { border: 0; border-radius: 10px; padding: 11px 18px; background: #f26732; color: #fff; font-weight: 650; cursor: pointer; }
+.profile-hero .profile-primary { margin-left: auto; background: #fff; color: #172033; }
+.profile-grid { display: grid; grid-template-columns: 1.4fr .8fr; gap: 20px; margin-top: 22px; }
+.profile-card { padding: 25px; border: 1px solid #e7e9ee; border-radius: 18px; background: #fff; box-shadow: 0 7px 24px rgba(27, 37, 59, .05); }
+.profile-card-title { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid #edf0f3; }
+.profile-card h2 { margin: 0; font-size: 17px; }
+.profile-card-title span { color: #98a0ae; font-size: 11px; }
+.profile-card dl { margin: 6px 0 0; }
+.profile-card dl div { display: grid; grid-template-columns: 150px 1fr; padding: 14px 0; border-bottom: 1px solid #f0f2f5; }
+.profile-card dl div:last-child { border: 0; }
+.profile-card dt { color: #8a93a3; font-size: 12px; }
+.profile-card dd { margin: 0; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.profile-about p, .profile-security p { color: #687386; font-size: 13px; line-height: 1.7; }
+.profile-security { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; }
+.profile-security button { padding: 10px 15px; border: 1px solid #e1e5ea; border-radius: 9px; background: #fff; color: #c83d45; font-weight: 650; cursor: pointer; }
+.profile-success, .profile-error { padding: 11px 14px; border-radius: 9px; font-size: 13px; }
+.profile-success { margin: 16px 0 -6px; color: #1f7a4d; background: #eaf8f0; }
+.profile-error { color: #b42318; background: #fff0ee; }
+.profile-modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(11, 18, 31, .6); backdrop-filter: blur(4px); }
+.profile-modal { width: min(650px, 100%); max-height: 92vh; overflow: auto; padding: 28px; border-radius: 20px; background: #fff; box-shadow: 0 28px 80px rgba(0, 0, 0, .28); }
+.profile-modal-head { display: flex; align-items: start; justify-content: space-between; margin-bottom: 22px; }
+.profile-modal-head h2 { margin: 4px 0 0; }
+.profile-modal-head > button { border: 0; background: transparent; color: #7d8796; font-size: 28px; cursor: pointer; }
+.profile-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
+.profile-form-grid label { position: relative; display: flex; flex-direction: column; gap: 7px; color: #485367; font-size: 12px; font-weight: 650; }
+.profile-form-grid input, .profile-form-grid textarea { border: 1px solid #dce1e8; border-radius: 9px; padding: 11px 12px; color: #182235; background: #fff; font: inherit; font-weight: 400; outline: none; }
+.profile-form-grid input:focus, .profile-form-grid textarea:focus { border-color: #f26732; box-shadow: 0 0 0 3px rgba(242, 103, 50, .11); }
+.profile-form-grid textarea { resize: vertical; }
+.profile-form-grid small { position: absolute; right: 8px; bottom: 7px; color: #9aa2af; font-weight: 400; }
+.profile-wide { grid-column: 1 / -1; }
+.profile-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.profile-actions button { border: 1px solid #dce1e8; border-radius: 9px; padding: 10px 17px; background: #fff; cursor: pointer; font-weight: 650; }
+.profile-actions .profile-primary { border-color: #f26732; background: #f26732; color: #fff; }
+
+@media (max-width: 850px) {
+  .profile-page { padding: 24px 18px 45px; }
+  .profile-hero { align-items: flex-start; flex-wrap: wrap; padding: 23px; }
+  .profile-hero .profile-primary { width: 100%; margin-left: 0; }
+  .profile-grid { grid-template-columns: 1fr; }
+  .profile-security { grid-column: auto; }
+}
+
+@media (max-width: 560px) {
+  .profile-form-grid { grid-template-columns: 1fr; }
+  .profile-wide { grid-column: auto; }
+  .profile-card dl div { grid-template-columns: 1fr; gap: 5px; }
+  .profile-security { align-items: flex-start; flex-direction: column; gap: 12px; }
+}
+
 .orders {
   width: 100%;
   height: 90vh;
