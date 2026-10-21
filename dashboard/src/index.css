@@ -937,3 +937,10 @@ hr {
 @media (max-width: 760px) { .dashboard-container { display: block; height: auto; } .watchlist-container { width: 100%; min-width: 0; max-height: 340px; overflow-y: auto; } .content { width: auto; padding: 20px 12px; } }
 
 .profile-id code { overflow-wrap: anywhere; font-size: 12px; }
+
+.watchlist-chart { padding: 16px 20px 28px; border-top: 1px solid #edf0f4; }
+.watchlist-chart h3 { margin: 0 0 16px; font-size: 16px; color: #263148; }
+.watchlist-chart-canvas { position: relative; height: 360px; }
+.holdings-chart { position: relative; height: 340px; margin: 24px 0; }
+.holdings-totals { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; padding: 24px 0; }
+.holdings-totals strong { font-size: 20px; }.holdings-totals p { margin: 8px 0 0; color: #737d91; font-size: 13px; }

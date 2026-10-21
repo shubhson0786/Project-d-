@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, within, act, cleanup } from '@testi
 import { GeneralContextProvider } from './GeneralContext';
 import WatchList from './WatchList';
 import api from '../api';
+jest.mock('./DoughnoutChart', () => ({ DoughnutChart: () => null }));
 jest.mock('../api', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }));
 let balance;
 let holdings;

@@ -5,5 +5,5 @@ import { Doughnut } from "react-chartjs-2";
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export function DoughnutChart({ data }) {
-  return <Doughnut data={data} />;
+  return <Doughnut role="img" aria-label="Watchlist stock prices" data={data} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }} />;
 }

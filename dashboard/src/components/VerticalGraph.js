@@ -21,6 +21,7 @@ ChartJS.register(
 
 export const options = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: {
       position: "top",
@@ -33,5 +34,5 @@ export const options = {
 };
 
 export function VerticalGraph({ data }) {
-  return <Bar options={options} data={data} />;
+  return <Bar role="img" aria-label="Holdings stock prices" options={options} data={data} />;
 }
