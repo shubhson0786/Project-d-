@@ -29,7 +29,7 @@ const Menu = () => {
   const menuClass = "menu";
   const activeMenuClass = "menu selected";
   const routeIndex = { "/": 0, "/orders": 1, "/holdings": 2, "/positions": 3, "/funds": 4, "/apps": 6, "/profile": 7 }[location.pathname];
-  const activeIndex = routeIndex ?? selectedMenu;
+  const activeIndex = location.pathname.startsWith("/profile/") ? 7 : routeIndex ?? selectedMenu;
 
   return (
     <div className="menu-container">
@@ -111,7 +111,7 @@ const Menu = () => {
         </button>
         {isProfileDropdownOpen && <div className="profile-dropdown" role="menu">
           <div><strong>{profile.name}</strong><small>{profile.email || "Complete your profile"}</small></div>
-          <Link to="/profile" role="menuitem" onClick={() => setIsProfileDropdownOpen(false)}>View profile <span>→</span></Link>
+          <Link to={`/profile/${profile.id}`} role="menuitem" onClick={() => setIsProfileDropdownOpen(false)}>View profile <span>→</span></Link>
         </div>}
         </div>
       </div>

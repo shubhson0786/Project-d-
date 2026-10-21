@@ -1,11 +1,10 @@
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
 const mongoose = require("mongoose");
 
 let connectionPromise;
 const connectDatabase = () => {
   if (!process.env.MONGO_URL) throw new Error("MONGO_URL is not configured");
-  if (!connectionPromise) connectionPromise = mongoose.connect(process.env.MONGO_URL);
+  if (!connectionPromise) connectionPromise = mongoose.connect(process.env.MONGO_URL).catch(error => { connectionPromise = undefined; throw error; });
   return connectionPromise;
 };
 
@@ -17,16 +16,11 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 
-const createSession = (user) => {
-  if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is not configured");
-  const payload = Buffer.from(JSON.stringify({ sub: user._id, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 })).toString("base64url");
-  const signature = crypto.createHmac("sha256", process.env.SESSION_SECRET).update(payload).digest("base64url");
-  return `${payload}.${signature}`;
-};
-
+const { sign } = require("../lib/auth");
 const sendAuthenticated = (res, status, user) => {
-  res.setHeader("Set-Cookie", `stashflow_session=${createSession(user)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`);
-  return res.status(status).json({ user: { name: user.name, email: user.email } });
+  res.setHeader("Cache-Control", "no-store");
+  const profile = { sub: String(user._id), name: user.name, email: user.email };
+  return res.status(status).json({ user: { name: user.name, email: user.email }, handoff: sign(profile, "handoff", 60000) });
 };
 
 module.exports = async function handler(req, res) {
@@ -36,14 +30,14 @@ module.exports = async function handler(req, res) {
   const password = String(req.body?.password || "");
   const name = String(req.body?.name || "").trim();
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || (password.length < 8 || Buffer.byteLength(password, "utf8") > 72)) {
     return res.status(400).json({ error: "Enter a valid email and a password of at least 8 characters." });
   }
 
   try {
     await connectDatabase();
     if (action === "REGISTER") {
-      if (name.length < 2) return res.status(400).json({ error: "Enter your full name." });
+      if (name.length < 2 || name.length > 80) return res.status(400).json({ error: "Enter your full name." });
       const exists = await User.exists({ email });
       if (exists) return res.status(409).json({ error: "An account already exists. Please log in." });
       const user = await User.create({ name, email, passwordHash: await bcrypt.hash(password, 12) });

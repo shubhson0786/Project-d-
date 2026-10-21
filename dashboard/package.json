@@ -45,5 +45,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "proxy": "http://localhost:3002",
+  "devDependencies": {
+    "mongodb-memory-server-core": "^11.3.0"
   }
 }

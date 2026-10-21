@@ -1,0 +1,30 @@
+const mongoose = require("mongoose");
+const holdingSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  name: { type: String, required: true },
+  qty: { type: Number, min: 0, required: true, validate: Number.isSafeInteger },
+  costBasisPaise: { type: Number, min: 0, required: true, validate: Number.isSafeInteger },
+}, { timestamps: true, collection: "holdings" });
+holdingSchema.index({ userId: 1, name: 1 }, { unique: true, partialFilterExpression: { userId: { $type: "string" } } });
+const orderSchema = new mongoose.Schema({
+  userId: { type: String, required: true, index: true },
+  requestId: { type: String, required: true },
+  name: { type: String, required: true },
+  qty: { type: Number, min: 1, required: true, validate: Number.isSafeInteger },
+  price: { type: Number, required: true },
+  totalPaise: { type: Number, required: true },
+  mode: { type: String, enum: ["BUY", "SELL"], required: true },
+  status: { type: String, enum: ["FILLED"], default: "FILLED" },
+  realizedProfitPaise: { type: Number, default: 0 },
+}, { timestamps: true });
+orderSchema.index({ userId: 1, requestId: 1 }, { unique: true, partialFilterExpression: { requestId: { $type: "string" } } });
+const transferSchema = new mongoose.Schema({
+  userId: { type: String, required: true }, requestId: { type: String, required: true },
+  type: { type: String, enum: ["ADD", "WITHDRAW"], required: true }, amountPaise: { type: Number, required: true },
+}, { timestamps: true });
+transferSchema.index({ userId: 1, requestId: 1 }, { unique: true });
+module.exports = {
+  Holding: mongoose.models.Holding || mongoose.model("Holding", holdingSchema),
+  Order: mongoose.models.Order || mongoose.model("Order", orderSchema),
+  Transfer: mongoose.models.Transfer || mongoose.model("Transfer", transferSchema),
+};

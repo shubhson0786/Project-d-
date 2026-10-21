@@ -1,16 +1,9 @@
-const mongoose = require("mongoose");
-const { connectDatabase } = require("./_database");
-
-const positionSchema = new mongoose.Schema({}, { strict: false, collection: "positions" });
-const Position = mongoose.models.Position || mongoose.model("Position", positionSchema);
-
-module.exports = async function handler(req, res) {
+const { requireUser } = require("../lib/auth");
+const { connectDatabase } = require("../lib/database");
+const { portfolio } = require("../lib/portfolio");
+module.exports = async (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
-  try {
-    await connectDatabase();
-    return res.json(await Position.find().lean());
-  } catch (error) {
-    console.error("Positions API error", error);
-    return res.status(500).json({ error: "Failed to load positions." });
-  }
+  try { await connectDatabase(); return res.json(await portfolio(user.sub)); }
+  catch (error) { console.error(error.message); return res.status(500).json({ error: "Could not load portfolio." }); }
 };

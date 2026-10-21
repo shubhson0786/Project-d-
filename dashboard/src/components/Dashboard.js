@@ -14,10 +14,8 @@ import { GeneralContextProvider } from "./GeneralContext";
 
 const Dashboard = () => {
   return (
-    <div className="dashboard-container">
-      <GeneralContextProvider>
+    <GeneralContextProvider><div className="paper-banner" role="status">Paper trading · simulated prices and funds · no real exchange orders</div><div className="dashboard-container">
         <WatchList />
-      </GeneralContextProvider>
       <div className="content">
         <Routes>
           <Route exact path="/" element={<Summary />} />
@@ -27,9 +25,10 @@ const Dashboard = () => {
           <Route path="/funds" element={<Funds />} />
           <Route path="/apps" element={<Apps />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
         </Routes>
       </div>
-    </div>
+    </div></GeneralContextProvider>
   );
 };
 

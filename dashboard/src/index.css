@@ -377,7 +377,7 @@ hr {
 .profile-error { color: #b42318; background: #fff0ee; }
 .profile-modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(11, 18, 31, .6); backdrop-filter: blur(4px); }
 .profile-modal { width: min(650px, 100%); max-height: 92vh; overflow: auto; padding: 28px; border-radius: 20px; background: #fff; box-shadow: 0 28px 80px rgba(0, 0, 0, .28); }
-.profile-modal-head { display: flex; align-items: start; justify-content: space-between; margin-bottom: 22px; }
+.profile-modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; }
 .profile-modal-head h2 { margin: 4px 0 0; }
 .profile-modal-head > button { border: 0; background: transparent; color: #7d8796; font-size: 28px; cursor: pointer; }
 .profile-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
@@ -935,3 +935,16 @@ hr {
   background: #ef6a47;
   border-radius: 10px 10px 10px 3px;
  }
+
+.paper-banner { padding: 10px 20px; color: #6b4d00; background: #fff6da; border-bottom: 1px solid #ebdca5; font-size: 12px; text-align: center; }
+.paper-label { color: #737d91; font-size: 12px; line-height: 1.6; padding: 0 12px; }
+.stock-actions { display: flex; gap: 8px; padding: 4px 0; }
+.stock-actions button { border: 0; border-radius: 5px; padding: 6px 12px; cursor: pointer; font-weight: 600; }
+.stock-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.trade-buy { background: #e6f4ed; color: #087a4b; }
+.trade-sell { background: #fff0ec; color: #b54732; }
+.summary-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.order-table { overflow-x: auto; }
+@media (max-width: 760px) { .dashboard-container { display: block; height: auto; } .watchlist-container { width: 100%; min-width: 0; max-height: 340px; overflow-y: auto; } .content { width: auto; padding: 20px 12px; } }
+
+.profile-id code { overflow-wrap: anywhere; font-size: 12px; }

@@ -1,19 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import api from "../api";
-
+import React from "react";
+import useAccountData, { money } from "../useAccountData";
 const Orders = () => {
-  const [orders, setOrders] = useState([]);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    let active = true;
-    api.get("/api/orders").then(({ data }) => active && setOrders(data)).catch(() => active && setError("Could not load orders."));
-    return () => { active = false; };
-  }, []);
-
-  if (error) return <p className="error-message" role="alert">{error}</p>;
-  if (!orders.length) return <div className="orders"><div className="no-orders"><p>You haven't placed any orders yet</p><Link to="/" className="btn">Get started</Link></div></div>;
-  return <><h3 className="title">Orders ({orders.length})</h3><div className="order-table"><table><thead><tr><th>Type</th><th>Instrument</th><th>Qty.</th><th>Price</th><th>Placed</th></tr></thead><tbody>{orders.map((order) => <tr key={order._id}><td className={order.mode === "BUY" ? "profit" : "loss"}>{order.mode}</td><td>{order.name}</td><td>{order.qty}</td><td>{Number(order.price).toFixed(2)}</td><td>{order.createdAt ? new Date(order.createdAt).toLocaleString() : "—"}</td></tr>)}</tbody></table></div></>;
+  const { data: orders, error, loading, refresh } = useAccountData("/api/orders", []);
+  if (loading) return <p>Loading orders…</p>;
+  if (error) return <p role="alert">{error} <button onClick={refresh}>Retry</button></p>;
+  return <><h3 className="title">Orders ({orders.length})</h3><p className="paper-label">Latest 200 orders · paper market fills</p>
+    {!orders.length ? <p>No orders yet. Add funds, then choose a stock to buy.</p> : <div className="order-table"><table><thead><tr><th>Side</th><th>Stock</th><th>Quantity</th><th>Fill price</th><th>Value</th><th>Status</th><th>Time</th></tr></thead><tbody>{orders.map(order => <tr key={order._id}><td className={order.mode === "BUY" ? "profit" : "loss"}>{order.mode}</td><td>{order.name}</td><td>{order.qty}</td><td>{money(order.price)}</td><td>{money(order.totalPaise == null ? order.qty * order.price : order.totalPaise / 100)}</td><td>{order.status || "LEGACY RECORD"}</td><td>{new Date(order.createdAt).toLocaleString()}</td></tr>)}</tbody></table></div>}</>;
 };
-
 export default Orders;
