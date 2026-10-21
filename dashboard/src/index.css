@@ -883,24 +883,13 @@ hr {
 }
 
 .list li:hover {
-  cursor: move;
+  cursor: default;
   background-color: #f3f3f3;
 }
 
 .list li:hover > .actions {
   display: flex;
   cursor: move;
-}
-
-/* TODO */
-.list li::before {
-  content: "";
-  background: transparent;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
 }
 
 .watchlist-number ul li:hover {
