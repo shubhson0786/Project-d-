@@ -61,7 +61,6 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     assert.equal(deposit.status, 200);
     const buy = await fetch(base + '/api/orders', { method: 'POST', headers: { cookie: first, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'WIPRO', qty: 1, mode: 'BUY', requestId: randomUUID() }) });
     assert.equal(buy.status, 201);
-    await giveLiquidity('WIPRO', 'BUY');
     const login = await authenticate('Diana', 'LOGIN');
     const owned = await (await fetch(base + '/api/holdings', { headers: { cookie: login } })).json();
     assert.equal(owned[0].qty, 1);
@@ -117,16 +116,16 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     assert.equal((await transfer(alice,'ADD',1,key)).status,409);
     assert.equal((await transfer(alice,'ADD',0.001)).status,400);
   });
-  await t.test('no other user sell order leaves a buy open without changing cash or holdings', async () => {
-    const placed = await placeTrade(alice, 'TCS', 1, 'BUY');
+  await t.test('buy without a user seller fills immediately from demo inventory', async () => {
+    const demoBuyer = '6123456789abcdef01234567';
+    await transfer(demoBuyer, 'ADD', 5000);
+    const placed = await placeTrade(demoBuyer, 'TCS', 1, 'BUY');
     assert.equal(placed.status, 201);
-    const orders = (await api('orders')).data;
-    assert.equal(orders.find(order => order._id === placed.data._id).status, 'OPEN');
-    assert.equal((await api('funds')).data.balance, 10000);
-    assert.deepEqual((await api('holdings')).data, []);
-    const cancelled = await fetch(base + '/api/orders', { method: 'DELETE', headers: { cookie: cookie(sign({sub:alice},'session',60000)), 'content-type':'application/json' }, body: JSON.stringify({ orderId: placed.data._id }) });
-    assert.equal(cancelled.status, 200);
-    assert.equal((await cancelled.json()).status, 'CANCELLED');
+    assert.equal(placed.data.status, 'FILLED');
+    assert.equal(placed.data.fillSource, 'DEMO');
+    assert.equal((await api('holdings', demoBuyer)).data[0].qty, 1);
+    assert.equal(Math.round((await api('funds', demoBuyer)).data.balance * 100), 500000 - placed.data.totalPaise);
+    assert.equal((await Trade.findOne({ buyOrderId: placed.data._id })).source, 'DEMO');
   });
   await t.test('one user sell listing transfers only matched shares and cash to another user', async () => {
     const seller = '4123456789abcdef01234567';
@@ -138,6 +137,7 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     assert.equal((await api('quotes',buyer)).data.quotes.find(item=>item.name==='ONGC').availableToBuy,2);
     const purchase = await placeTrade(buyer, 'ONGC', 1, 'BUY');
     assert.equal(purchase.status,201);
+    assert.equal(purchase.data.fillSource,'USER');
     assert.equal((await api('holdings',seller)).data[0].qty,1);
     assert.equal((await api('holdings',buyer)).data[0].qty,1);
     const saleOrder=(await api('orders',seller)).data.find(item=>item._id===offered.data._id);
@@ -148,6 +148,18 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     assert.equal(trade.qty,1);
     assert.equal(Math.round((await api('funds',seller)).data.balance*100),trade.pricePaise);
     assert.equal(Math.round((await api('funds',buyer)).data.balance*100),50000-trade.pricePaise);
+  });
+  await t.test('buy fills listed shares first and remaining shares from demo inventory', async () => {
+    const buyer = '7123456789abcdef01234567';
+    await transfer(buyer, 'ADD', 5000);
+    const purchase = await placeTrade(buyer, 'ONGC', 2, 'BUY');
+    assert.equal(purchase.status, 201);
+    assert.equal(purchase.data.status, 'FILLED');
+    assert.equal(purchase.data.fillSource, 'MIXED');
+    const fills = await Trade.find({ buyOrderId: purchase.data._id }).lean();
+    assert.equal(fills.length, 2);
+    assert.deepEqual(fills.map(fill => fill.source).sort(), ['DEMO', 'USER']);
+    assert.equal((await api('holdings', buyer)).data[0].qty, 2);
   });
   let first;
   await t.test('buy uses server price, debits cash and creates owned shares exactly once', async () => {

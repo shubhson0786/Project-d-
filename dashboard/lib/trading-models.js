@@ -22,6 +22,7 @@ const orderSchema = new mongoose.Schema({
   filledAt: { type: Date },
   rejectionReason: { type: String },
   realizedProfitPaise: { type: Number, default: 0 },
+  fillSource: { type: String, enum: ["USER", "DEMO", "MIXED"] },
 }, { timestamps: true });
 orderSchema.index({ userId: 1, requestId: 1 }, { unique: true, partialFilterExpression: { requestId: { $type: "string" } } });
 orderSchema.index({ name: 1, status: 1, createdAt: 1 });
@@ -31,9 +32,10 @@ const tradeSchema = new mongoose.Schema({
   qty: { type: Number, min: 1, required: true, validate: Number.isSafeInteger },
   pricePaise: { type: Number, min: 1, required: true, validate: Number.isSafeInteger },
   buyOrderId: { type: mongoose.Schema.Types.ObjectId, required: true },
-  sellOrderId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  sellOrderId: { type: mongoose.Schema.Types.ObjectId },
   buyerUserId: { type: String, required: true },
   sellerUserId: { type: String, required: true },
+  source: { type: String, enum: ["USER", "DEMO"], default: "USER" },
 }, { timestamps: true, collection: "paper_trades" });
 const transferSchema = new mongoose.Schema({
   userId: { type: String, required: true }, requestId: { type: String, required: true },

@@ -49,8 +49,10 @@ async function executeOrder(userId, input) {
     }
     throw error;
   }
-  try { await matchOpenOrders(name); }
-  catch (error) { console.error("Paper order matching deferred", error.message); }
+  try {
+    await matchOpenOrders(name);
+    if (mode === "BUY") await fillDemoBuy(placed._id);
+  } catch (error) { console.error("Paper order matching deferred", error.message); }
   return Order.findById(placed._id);
 }
 
@@ -108,9 +110,52 @@ async function settlePair(buyId, sellId) {
       await Holding.updateOne({ userId: buy.userId, name: buy.name }, { $set: { qty: buyerQty + qty, costBasisPaise: buyerCost + totalPaise } }, { upsert: true, session, runValidators: true });
       fillOrder(buy, qty, totalPaise);
       fillOrder(sell, qty, totalPaise);
+      buy.fillSource = buy.fillSource === "DEMO" ? "MIXED" : "USER";
+      sell.fillSource = "USER";
       sell.realizedProfitPaise += realizedProfitPaise;
       await Promise.all([buy.save({ session }), sell.save({ session })]);
       await Trade.create([{ name: buy.name, qty, pricePaise, buyOrderId: buy._id, sellOrderId: sell._id, buyerUserId: buy.userId, sellerUserId: sell.userId }], { session });
+    });
+  } finally { await session.endSession(); }
+}
+
+async function fillDemoBuy(orderId) {
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const buy = await Order.findOne({ _id: orderId, mode: "BUY", status: { $in: active } }).session(session);
+      if (!buy) return;
+      const pricePaise = quote(buy.name)?.pricePaise;
+      if (!Number.isSafeInteger(pricePaise) || pricePaise < 1) throw fail("Stock quote unavailable.");
+      const [account, holding] = await Promise.all([
+        FundAccount.findOne({ accountKey: buy.userId }).session(session),
+        Holding.findOne({ userId: buy.userId, name: buy.name }).session(session),
+      ]);
+      const qty = Math.min(remaining(buy), Math.floor((account?.balancePaise || 0) / pricePaise));
+      if (qty < 1) {
+        buy.status = "REJECTED";
+        buy.rejectionReason = "Insufficient virtual cash at the current quote.";
+        await buy.save({ session });
+        return;
+      }
+      const totalPaise = qty * pricePaise;
+      if (!Number.isSafeInteger(totalPaise)) throw fail("Trade value is too large.");
+      const debited = await FundAccount.findOneAndUpdate({ accountKey: buy.userId, balancePaise: { $gte: totalPaise } }, {
+        $inc: { balancePaise: -totalPaise, balance: -totalPaise / 100 },
+        $push: { transactions: { type: "BUY", amount: totalPaise / 100, method: "TRADE", symbol: buy.name, qty, requestId: buy.requestId } },
+      }, { session });
+      if (!debited) throw fail("Balance changed while buying.", 409);
+      const oldQty = holding?.qty || 0;
+      const oldCost = holding?.costBasisPaise ?? Math.round((holding?.get("avg") || 0) * oldQty * 100);
+      await Holding.updateOne({ userId: buy.userId, name: buy.name }, { $set: { qty: oldQty + qty, costBasisPaise: oldCost + totalPaise } }, { upsert: true, session, runValidators: true });
+      fillOrder(buy, qty, totalPaise);
+      buy.fillSource = buy.fillSource === "USER" ? "MIXED" : "DEMO";
+      if (remaining(buy) > 0) {
+        buy.status = "REJECTED";
+        buy.rejectionReason = "Remaining shares could not be bought with available virtual cash.";
+      }
+      await buy.save({ session });
+      await Trade.create([{ name: buy.name, qty, pricePaise, buyOrderId: buy._id, buyerUserId: buy.userId, sellerUserId: "PAPER_DEMO_INVENTORY", source: "DEMO" }], { session });
     });
   } finally { await session.endSession(); }
 }
@@ -131,6 +176,8 @@ async function matchOpenOrders(name) {
 async function settleDueOrders(userId) {
   const names = await Order.distinct("name", { userId, status: { $in: active } });
   for (const name of names) await matchOpenOrders(name);
+  const pendingBuys = await Order.find({ userId, mode: "BUY", status: { $in: active } }).lean();
+  for (const buy of pendingBuys) await fillDemoBuy(buy._id);
 }
 
 async function cancelOrder(userId, orderId) {
