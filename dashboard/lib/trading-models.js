@@ -21,6 +21,7 @@ orderSchema.index({ userId: 1, requestId: 1 }, { unique: true, partialFilterExpr
 const transferSchema = new mongoose.Schema({
   userId: { type: String, required: true }, requestId: { type: String, required: true },
   type: { type: String, enum: ["ADD", "WITHDRAW"], required: true }, amountPaise: { type: Number, required: true },
+  method: { type: String, enum: ["PAPER", "DEMO_QR"], default: "PAPER" },
 }, { timestamps: true });
 transferSchema.index({ userId: 1, requestId: 1 }, { unique: true });
 module.exports = {

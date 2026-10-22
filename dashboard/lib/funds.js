@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const transactionSchema = new mongoose.Schema({
   type: { type: String, enum: ["ADD", "WITHDRAW", "BUY", "SELL"], required: true },
   amount: { type: Number, min: 1, required: true },
-  method: { type: String, enum: ["RAZORPAY", "BANK", "PAPER", "TRADE"] },
+  method: { type: String, enum: ["RAZORPAY", "BANK", "PAPER", "DEMO_QR", "TRADE"] },
   symbol: String,
   qty: Number,
   requestId: String,

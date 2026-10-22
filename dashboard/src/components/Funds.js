@@ -29,6 +29,7 @@ const Funds = () => {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [showDemoQr, setShowDemoQr] = useState(false);
+  const [fundingMethod, setFundingMethod] = useState("DEMO_QR");
 
   const numericAmount = Number(amount);
   const validAmount = Number.isFinite(numericAmount) && numericAmount >= 1 && numericAmount <= 500000
@@ -56,6 +57,7 @@ const Funds = () => {
     setAction(nextAction);
     setAmount("");
     setShowDemoQr(false);
+    setFundingMethod("DEMO_QR");
     setError("");
     setNotice("");
   };
@@ -76,7 +78,7 @@ const Funds = () => {
     if (action === "WITHDRAW" && numericAmount > account.balance) {
       return setError("Withdrawal amount cannot exceed your available cash.");
     }
-    if (action === "ADD" && account.paymentMode === "razorpay_test" && !showDemoQr) {
+    if (action === "ADD" && account.paymentMode === "razorpay_test" && fundingMethod === "DEMO_QR" && !showDemoQr) {
       setShowDemoQr(true);
       return;
     }
@@ -84,7 +86,7 @@ const Funds = () => {
       busy.current = true;
       setSubmitting(true);
       let data;
-      if (action === "ADD" && account.paymentMode === "razorpay_test") {
+      if (action === "ADD" && account.paymentMode === "razorpay_test" && fundingMethod === "RAZORPAY") {
         const Razorpay = await loadRazorpay();
         const { data: order } = await api.post("/api/razorpay-order", { amount: numericAmount });
         const payment = await new Promise((resolve, reject) => {
@@ -104,11 +106,11 @@ const Funds = () => {
         });
         ({ data } = await api.post("/api/razorpay-verify", payment));
       } else {
-        ({ data } = await api.post("/api/funds", { type: action, amount: numericAmount, requestId: key.current }));
+        ({ data } = await api.post("/api/funds", { type: action, amount: numericAmount, requestId: key.current, ...(action === "ADD" && account.paymentMode === "razorpay_test" ? { method: "DEMO_QR" } : {}) }));
       }
       setAccount(data);
       accountChanged();
-      setNotice(`${action === "ADD" ? "Deposit" : "Withdrawal"} of ${money(numericAmount)} completed.`);
+      setNotice(`${action === "ADD" ? fundingMethod === "DEMO_QR" && account.paymentMode === "razorpay_test" ? "Demo deposit" : "Deposit" : "Withdrawal"} of ${money(numericAmount)} completed.`);
       setAction(null);
       setAmount("");
     } catch (requestError) {
@@ -140,7 +142,7 @@ const Funds = () => {
       <section className="balance-grid" aria-label="Fund balances">
         <article className="balance-card featured"><span>Available cash</span><strong>{money(account.balance)}</strong><small>Ready to invest or withdraw</small></article>
         <article className="balance-card"><span>Realized P&amp;L</span><strong>{money(account.realizedProfit)}</strong><small>Profit or loss from completed sales</small></article>
-        <article className="balance-card"><span>Funding mode</span><strong style={{ fontSize: "20px" }}>{account.paymentMode === "paper" ? "Paper wallet" : "Razorpay Test"}</strong><small>No real money or bank payouts</small></article>
+        <article className="balance-card"><span>Funding mode</span><strong style={{ fontSize: "20px" }}>{account.paymentMode === "paper" ? "Paper wallet" : "Demo QR or Razorpay Test"}</strong><small>No real money or bank payouts</small></article>
       </section>
 
       <section className="fund-history">
@@ -150,7 +152,7 @@ const Funds = () => {
             {account.transactions.map((transaction) => (
               <div className="transaction" key={transaction._id}>
                 <span className={`transaction-icon ${transaction.type.toLowerCase()}`}>{["ADD", "SELL"].includes(transaction.type) ? "+" : "−"}</span>
-                <div><strong>{transaction.type === "ADD" ? "Funds added" : transaction.type === "WITHDRAW" ? "Withdrawal" : `${transaction.type === "BUY" ? "Bought" : "Sold"} ${transaction.qty} ${transaction.symbol}`}</strong><small>{transaction.method === "RAZORPAY" ? "Razorpay Test Mode" : transaction.method === "TRADE" ? "Paper market fill" : "Paper wallet"} · {new Date(transaction.createdAt).toLocaleString("en-IN")}</small></div>
+                <div><strong>{transaction.type === "ADD" ? "Funds added" : transaction.type === "WITHDRAW" ? "Withdrawal" : `${transaction.type === "BUY" ? "Bought" : "Sold"} ${transaction.qty} ${transaction.symbol}`}</strong><small>{transaction.method === "RAZORPAY" ? "Razorpay Test Mode" : transaction.method === "DEMO_QR" ? "Demo QR virtual funds" : transaction.method === "TRADE" ? "Paper market fill" : "Paper wallet"} · {new Date(transaction.createdAt).toLocaleString("en-IN")}</small></div>
                 <span className={["ADD", "SELL"].includes(transaction.type) ? "credit" : "debit"}>{["ADD", "SELL"].includes(transaction.type) ? "+" : "−"}{money(transaction.amount)}</span>
               </div>
             ))}
@@ -164,17 +166,28 @@ const Funds = () => {
             <div className="fund-dialog-header"><div><span>{action === "ADD" ? "Deposit" : "Withdrawal"}</span><h3 id="fund-dialog-title">{action === "ADD" ? "Add funds" : "Withdraw funds"}</h3></div><button type="button" onClick={closeDialog} aria-label="Close">×</button></div>
             <div className="fund-dialog-body">
               <label>Amount<div className="fund-amount-input"><span>₹</span><input type="number" min="1" step="0.01" autoFocus value={amount} disabled={submitting} onChange={(event) => { setAmount(event.target.value); setShowDemoQr(false); key.current = crypto.randomUUID(); }} placeholder="0.00" /></div></label>
-              {showDemoQr && action === "ADD" && account.paymentMode === "razorpay_test" && (
+              {showDemoQr && action === "ADD" && account.paymentMode === "razorpay_test" && fundingMethod === "DEMO_QR" && (
                 <div className="demo-qr" role="status">
                   <strong>Demo QR — not payable</strong>
                   <QRCodeSVG value={`STASHFLOW DEMO ONLY | INR ${numericAmount.toFixed(2)} | NO PAYMENT`} size={192} level="M" marginSize={4} title="Stashflow demo QR, not a payment request" />
                   <span>{money(numericAmount)}</span>
-                  <p>Scanning this code only displays demo text. It cannot take money or add funds. Continue to Razorpay Test Checkout to simulate the payment.</p>
+                  <p>Scanning this code only displays demo text. It cannot take money. Click Add virtual funds below to confirm this simulated deposit.</p>
                 </div>
               )}
               <fieldset className="payment-methods">
                 <legend>Payment method</legend>
-                {action === "ADD" ? (
+                {action === "ADD" && account.paymentMode === "razorpay_test" ? (
+                  <>
+                    <label className={fundingMethod === "DEMO_QR" ? "selected" : ""}>
+                      <input type="radio" name="paymentMethod" checked={fundingMethod === "DEMO_QR"} onChange={() => { setFundingMethod("DEMO_QR"); setShowDemoQr(false); }} />
+                      <span className="method-icon upi">QR</span><span><strong>Demo QR</strong><small>Instant virtual funds after confirmation; no payment</small></span><b>›</b>
+                    </label>
+                    <label className={fundingMethod === "RAZORPAY" ? "selected" : ""}>
+                      <input type="radio" name="paymentMethod" checked={fundingMethod === "RAZORPAY"} onChange={() => { setFundingMethod("RAZORPAY"); setShowDemoQr(false); }} />
+                      <span className="method-icon bank">R</span><span><strong>Razorpay Test Checkout</strong><small>Simulated gateway payment</small></span><b>›</b>
+                    </label>
+                  </>
+                ) : action === "ADD" ? (
                   <label className="selected">
                     <input type="radio" name="paymentMethod" checked readOnly />
                     <span className="method-icon upi">R</span><span><strong>{account.paymentMode === "paper" ? "Paper wallet deposit" : "Razorpay Test Checkout"}</strong><small>{account.paymentMode === "paper" ? "Instant simulated funds" : "Test payment methods"}</small></span><b>›</b>
@@ -189,7 +202,7 @@ const Funds = () => {
               {error && <p className="fund-error" role="alert">{error}</p>}
               <p className="fund-disclaimer">{"Simulation only. No real money is added, deducted, or transferred to a bank."}</p>
             </div>
-            <div className="fund-dialog-footer"><button type="button" className="fund-cancel" onClick={closeDialog} disabled={submitting}>Cancel</button><button type="submit" className={`fund-confirm ${action === "ADD" ? "add" : "withdraw"}`} disabled={!validAmount || submitting}>{submitting ? "Processing…" : action === "ADD" ? (account.paymentMode === "paper" ? "Add paper funds" : showDemoQr ? "Continue to Razorpay Test" : "Show demo QR") : "Withdraw paper funds"}</button></div>
+            <div className="fund-dialog-footer"><button type="button" className="fund-cancel" onClick={closeDialog} disabled={submitting}>Cancel</button><button type="submit" className={`fund-confirm ${action === "ADD" ? "add" : "withdraw"}`} disabled={!validAmount || submitting}>{submitting ? "Processing…" : action === "ADD" ? (account.paymentMode === "paper" ? "Add paper funds" : fundingMethod === "RAZORPAY" ? "Pay with Razorpay Test" : showDemoQr ? "Add virtual funds" : "Show demo QR") : "Withdraw paper funds"}</button></div>
           </form>
         </div>
       )}

@@ -17,27 +17,29 @@ module.exports = async (req, res) => {
     const key = requestId(req.body?.requestId);
     if (!["ADD", "WITHDRAW"].includes(type)) throw fail("Choose deposit or withdrawal.");
     const paper = process.env.PAYMENT_MODE !== "razorpay_test";
-    if (type === "ADD" && !paper) throw fail("Deposits must be completed through Razorpay Test Checkout.");
+    const method = type === "ADD" && !paper ? req.body?.method : "PAPER";
+    if (type === "ADD" && !paper && method !== "DEMO_QR") throw fail("Choose Demo QR or complete Razorpay Test Checkout.");
     session = await mongoose.startSession();
     let result;
     await session.withTransaction(async () => {
       const replay = await Transfer.findOne({ userId: user.sub, requestId: key }).session(session);
       if (replay) {
-        if (replay.type !== type || replay.amountPaise !== amount) throw fail("Request ID already used for another transfer.", 409);
+        if (replay.type !== type || replay.amountPaise !== amount || (replay.method || "PAPER") !== method) throw fail("Request ID already used for another transfer.", 409);
         result = await FundAccount.findOne({ accountKey: user.sub }).session(session); return;
       }
       const filter = { accountKey: user.sub };
       if (type === "WITHDRAW") filter.balancePaise = { $gte: amount };
       const delta = type === "ADD" ? amount : -amount;
-      result = await FundAccount.findOneAndUpdate(filter, { $inc: { balancePaise: delta, balance: delta / 100 }, $push: { transactions: { type, amount: amount / 100, method: "PAPER", requestId: key } } }, { new: true, session });
+      result = await FundAccount.findOneAndUpdate(filter, { $inc: { balancePaise: delta, balance: delta / 100 }, $push: { transactions: { type, amount: amount / 100, method, requestId: key } } }, { new: true, session });
       if (!result) throw fail("Insufficient available cash for this withdrawal.", 409);
-      await Transfer.create([{ userId: user.sub, requestId: key, type, amountPaise: amount }], { session });
+      await Transfer.create([{ userId: user.sub, requestId: key, type, amountPaise: amount, method }], { session });
     });
     return res.json(responseAccount(result));
   } catch (error) {
     if (error.code === 11000) {
       const replay = await Transfer.findOne({ userId: user.sub, requestId: req.body?.requestId });
-      if (replay && replay.type === String(req.body?.type).toUpperCase() && replay.amountPaise === Math.round(Number(req.body?.amount) * 100)) return res.json(responseAccount(await FundAccount.findOne({ accountKey: user.sub })));
+      const expectedMethod = replay?.type === "ADD" && process.env.PAYMENT_MODE === "razorpay_test" ? req.body?.method : "PAPER";
+      if (replay && replay.type === String(req.body?.type).toUpperCase() && replay.amountPaise === Math.round(Number(req.body?.amount) * 100) && (replay.method || "PAPER") === expectedMethod) return res.json(responseAccount(await FundAccount.findOne({ accountKey: user.sub })));
     }
     console.error("Funds error", error.message);
     return res.status(error.status || 500).json({ error: error.status ? error.message : "Could not update funds. Retry with the same request ID." });
