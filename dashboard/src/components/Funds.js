@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import api from "../api";
 import useAccountData, { accountChanged } from "../useAccountData";
 import "./Funds.css";
@@ -27,6 +28,7 @@ const Funds = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [showDemoQr, setShowDemoQr] = useState(false);
 
   const numericAmount = Number(amount);
   const validAmount = Number.isFinite(numericAmount) && numericAmount >= 1 && numericAmount <= 500000
@@ -53,6 +55,7 @@ const Funds = () => {
     key.current = crypto.randomUUID();
     setAction(nextAction);
     setAmount("");
+    setShowDemoQr(false);
     setError("");
     setNotice("");
   };
@@ -61,6 +64,7 @@ const Funds = () => {
     if (busy.current) return;
     setAction(null);
     setAmount("");
+    setShowDemoQr(false);
     setError("");
   };
 
@@ -71,6 +75,10 @@ const Funds = () => {
     if (!validAmount) return setError("Enter an amount between ₹1 and ₹5,00,000, with at most two decimal places.");
     if (action === "WITHDRAW" && numericAmount > account.balance) {
       return setError("Withdrawal amount cannot exceed your available cash.");
+    }
+    if (action === "ADD" && account.paymentMode === "razorpay_test" && !showDemoQr) {
+      setShowDemoQr(true);
+      return;
     }
     try {
       busy.current = true;
@@ -155,7 +163,15 @@ const Funds = () => {
           <form className="fund-dialog" onSubmit={submitTransfer} onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="fund-dialog-title">
             <div className="fund-dialog-header"><div><span>{action === "ADD" ? "Deposit" : "Withdrawal"}</span><h3 id="fund-dialog-title">{action === "ADD" ? "Add funds" : "Withdraw funds"}</h3></div><button type="button" onClick={closeDialog} aria-label="Close">×</button></div>
             <div className="fund-dialog-body">
-              <label>Amount<div className="fund-amount-input"><span>₹</span><input type="number" min="1" step="0.01" autoFocus value={amount} disabled={submitting} onChange={(event) => { setAmount(event.target.value); key.current = crypto.randomUUID(); }} placeholder="0.00" /></div></label>
+              <label>Amount<div className="fund-amount-input"><span>₹</span><input type="number" min="1" step="0.01" autoFocus value={amount} disabled={submitting} onChange={(event) => { setAmount(event.target.value); setShowDemoQr(false); key.current = crypto.randomUUID(); }} placeholder="0.00" /></div></label>
+              {showDemoQr && action === "ADD" && account.paymentMode === "razorpay_test" && (
+                <div className="demo-qr" role="status">
+                  <strong>Demo QR — not payable</strong>
+                  <QRCodeSVG value={`STASHFLOW DEMO ONLY | INR ${numericAmount.toFixed(2)} | NO PAYMENT`} size={192} level="M" marginSize={4} title="Stashflow demo QR, not a payment request" />
+                  <span>{money(numericAmount)}</span>
+                  <p>Scanning this code only displays demo text. It cannot take money or add funds. Continue to Razorpay Test Checkout to simulate the payment.</p>
+                </div>
+              )}
               <fieldset className="payment-methods">
                 <legend>Payment method</legend>
                 {action === "ADD" ? (
@@ -173,7 +189,7 @@ const Funds = () => {
               {error && <p className="fund-error" role="alert">{error}</p>}
               <p className="fund-disclaimer">{"Simulation only. No real money is added, deducted, or transferred to a bank."}</p>
             </div>
-            <div className="fund-dialog-footer"><button type="button" className="fund-cancel" onClick={closeDialog} disabled={submitting}>Cancel</button><button type="submit" className={`fund-confirm ${action === "ADD" ? "add" : "withdraw"}`} disabled={!validAmount || submitting}>{submitting ? "Processing…" : action === "ADD" ? (account.paymentMode === "paper" ? "Add paper funds" : "Pay with Razorpay Test") : "Withdraw paper funds"}</button></div>
+            <div className="fund-dialog-footer"><button type="button" className="fund-cancel" onClick={closeDialog} disabled={submitting}>Cancel</button><button type="submit" className={`fund-confirm ${action === "ADD" ? "add" : "withdraw"}`} disabled={!validAmount || submitting}>{submitting ? "Processing…" : action === "ADD" ? (account.paymentMode === "paper" ? "Add paper funds" : showDemoQr ? "Continue to Razorpay Test" : "Show demo QR") : "Withdraw paper funds"}</button></div>
           </form>
         </div>
       )}
