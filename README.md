@@ -33,12 +33,12 @@ Each new account starts with zero cash and no holdings. Existing owned accounts 
 ## Trading behaviour
 
 - Add paper funds in Funds, then buy any available watchlist stock. Sell from the watchlist or Holdings. Only whole-share, fully paid delivery market orders are supported.
-- The server supplies the fill price from the same simulated quote source as the watchlist. Client prices and user IDs cannot change execution. Quotes update every 15 seconds; the final fill may differ from the preview.
-- A MongoDB transaction changes cash, shares, cost basis, ledger, and the filled order together. Insufficient cash and overselling are rejected, including simultaneous requests from different tabs. Partial sales retain proportional cost basis; full sales remove the holding.
+- Placing a trade creates an `OPEN` paper market order; it does not immediately move cash or shares. After at least three seconds, the next authenticated orders, funds, or holdings read processes due orders in placement order. The server supplies the fill price from the simulated quote at that time. Client prices and user IDs cannot change execution. Quotes update every 15 seconds, so the final fill may differ from the preview.
+- A MongoDB transaction changes cash, shares, cost basis, ledger, and the order status together on fill. Cash or shares may have changed before processing, so an open order can become `REJECTED`; it can also be `CANCELLED` before fill. Partial sales retain proportional cost basis; full sales remove the holding. This simulator does not model partial fills or a live matching engine.
 - Monetary calculations use integer paise. Realized P&L comes from completed sales. Holdings, delivery positions, and the summary refresh after actions and every 15 seconds.
 - Deposits, withdrawals, and trades require a unique `requestId` (8–100 letters, digits, underscores, or hyphens). Retrying the same action with the same ID returns the original result without moving money twice. Reusing an ID with different details returns 409. The UI preserves the ID for unchanged retries.
 - Paper deposits and withdrawals accept ₹1–₹5,00,000 per request. Withdrawals reduce only available cash; invested cash must first be recovered by selling shares. There are no bank payouts.
-- No short selling, leverage, intraday settlement, pending limit orders, brokerage, tax, dividends, or corporate actions are modelled. Prices are sample data, not a live or historical exchange feed.
+- No short selling, leverage, intraday settlement, limit orders, brokerage, tax, dividends, or corporate actions are modelled. Prices are sample data, not a live or historical exchange feed.
 
 For actual exchange trading, replace the simulator with an authorised broker order API, licensed quotes, broker account linking, risk checks, settlement handling, and a real reconciliation ledger. Never present the current simulator as a real-money brokerage.
 

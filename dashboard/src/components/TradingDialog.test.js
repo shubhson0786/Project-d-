@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within, act, cleanup } from '@testing-library/react';
 import { GeneralContextProvider } from './GeneralContext';
+import { MemoryRouter } from 'react-router-dom';
 import WatchList from './WatchList';
 import api from '../api';
 jest.mock('./DoughnoutChart', () => ({ DoughnutChart: () => null }));
@@ -16,12 +17,12 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); jest.useRealTimers(); });
 async function open(side) {
-  await act(async () => { render(<GeneralContextProvider><WatchList /></GeneralContextProvider>); });
+  await act(async () => { render(<MemoryRouter><GeneralContextProvider><WatchList /></GeneralContextProvider></MemoryRouter>); });
   const trigger = await screen.findByRole('button', { name: `${side} WIPRO` });
   await act(async () => { fireEvent.click(trigger); });
   const dialog = await screen.findByRole('dialog');
   await within(dialog).findByText(/Available cash:.*10,000|Available cash:.*0.00/);
-  return { dialog, button: within(dialog).getByRole('button', { name: `${side} WIPRO` }) };
+  return { dialog, button: within(dialog).getByRole('button', { name: `Place ${side.toLowerCase()} order` }) };
 }
 test('funded watchlist buy opens and submits the selected stock', async () => {
   const { button } = await open('Buy');

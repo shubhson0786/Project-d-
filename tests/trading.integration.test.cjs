@@ -30,7 +30,14 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     return { status:res.status, data:await res.json() };
   }
   const transfer = (user,type,amount,requestId=randomUUID()) => api('funds',user,{type,amount,requestId});
-  const trade = (user,name,qty,mode,requestId=randomUUID(),extra={}) => api('orders',user,{name,qty,mode,requestId,...extra});
+  const placeTrade = (user,name,qty,mode,requestId=randomUUID(),extra={}) => api('orders',user,{name,qty,mode,requestId,...extra});
+  async function fill(user, placed) {
+    if (placed.status !== 201) return placed;
+    await Order.updateOne({ _id: placed.data._id }, { $set: { createdAt: new Date(Date.now() - 5000) } });
+    const orders = (await api('orders', user)).data;
+    return { ...placed, data: orders.find(order => order._id === placed.data._id) };
+  }
+  const trade = async (...args) => fill(args[0], await placeTrade(...args));
   await t.test('real registration, login and dashboard sessions keep two users separate', async () => {
     async function authenticate(name, action = 'REGISTER') {
       const response = await fetch(base + '/api/auth', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, name, email: `${name.toLowerCase()}@example.com`, password: 'integration-password-123' }) });
@@ -46,6 +53,7 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     assert.equal(deposit.status, 200);
     const buy = await fetch(base + '/api/orders', { method: 'POST', headers: { cookie: first, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'WIPRO', qty: 1, mode: 'BUY', requestId: randomUUID() }) });
     assert.equal(buy.status, 201);
+    await Order.updateOne({ _id: (await buy.json())._id }, { $set: { createdAt: new Date(Date.now() - 5000) } });
     const login = await authenticate('Diana', 'LOGIN');
     const owned = await (await fetch(base + '/api/holdings', { headers: { cookie: login } })).json();
     assert.equal(owned[0].qty, 1);
@@ -103,7 +111,8 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
   });
   let first;
   await t.test('buy uses server price, debits cash and creates owned shares exactly once', async () => {
-    const key=randomUUID();const results=await Promise.all([trade(alice,'INFY',2,'BUY',key,{price:0.01,userId:bob}),trade(alice,'INFY',2,'BUY',key,{price:0.01,userId:bob})]);
+    const key=randomUUID();const placed=await Promise.all([placeTrade(alice,'INFY',2,'BUY',key,{price:0.01,userId:bob}),placeTrade(alice,'INFY',2,'BUY',key,{price:0.01,userId:bob})]);
+    const results=await Promise.all(placed.map(item=>fill(alice,item)));
     assert.ok(results.every(item=>item.status===201),JSON.stringify(results));first=results[0].data;
     assert.ok(first.price>1000);assert.equal(first.userId,alice);assert.equal(first.status,'FILLED');
     assert.equal(results[0].data._id,results[1].data._id);
@@ -136,14 +145,20 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
   });
   await t.test('concurrent buys cannot spend the same cash twice', async () => {
     await transfer(bob,'ADD',2000);
-    const results=await Promise.all([trade(bob,'INFY',1,'BUY'),trade(bob,'INFY',1,'BUY')]);
-    assert.deepEqual(results.map(item=>item.status).sort(),[201,409]);
+    const results=await Promise.all([placeTrade(bob,'INFY',1,'BUY'),placeTrade(bob,'INFY',1,'BUY')]);
+    assert.ok(results.every(item=>item.status===201));
+    await Promise.all(results.map(item=>Order.updateOne({_id:item.data._id},{$set:{createdAt:new Date(Date.now()-5000)}})));
+    const settled=(await api('orders',bob)).data.filter(item=>results.some(result=>result.data._id===item._id));
+    assert.deepEqual(settled.map(item=>item.status).sort(),['FILLED','REJECTED']);
     assert.equal((await api('holdings',bob)).data[0].qty,1);
     assert.ok((await api('funds',bob)).data.balance>=0);
   });
   await t.test('concurrent sells cannot sell the same share twice', async () => {
-    const results=await Promise.all([trade(bob,'INFY',1,'SELL'),trade(bob,'INFY',1,'SELL')]);
-    assert.deepEqual(results.map(item=>item.status).sort(),[201,409]);assert.deepEqual((await api('holdings',bob)).data,[]);
+    const results=await Promise.all([placeTrade(bob,'INFY',1,'SELL'),placeTrade(bob,'INFY',1,'SELL')]);
+    assert.ok(results.every(item=>item.status===201));
+    await Promise.all(results.map(item=>Order.updateOne({_id:item.data._id},{$set:{createdAt:new Date(Date.now()-5000)}})));
+    const settled=(await api('orders',bob)).data.filter(item=>results.some(result=>result.data._id===item._id));
+    assert.deepEqual(settled.map(item=>item.status).sort(),['FILLED','REJECTED']);assert.deepEqual((await api('holdings',bob)).data,[]);
   });
   await t.test('withdrawals reject overdrafts, round precisely, and do not repeat on retry', async () => {
     const before=(await api('funds',bob)).data.balance;
@@ -155,7 +170,7 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
   await t.test('a buy racing a withdrawal cannot overdraw the account', async () => {
     const charlie='2123456789abcdef01234567';await transfer(charlie,'ADD',1600);
     const results=await Promise.all([trade(charlie,'INFY',1,'BUY'),transfer(charlie,'WITHDRAW',100)]);
-    assert.equal(results.filter(item=>item.status===409).length,1);assert.ok((await api('funds',charlie)).data.balance>=0);
+    assert.ok(results.some(item=>item.status===201));assert.ok((await api('funds',charlie)).data.balance>=0);
   });
   await t.test('failed trade rolls back cash, holding and ledger changes', async () => {
     const before=await FundAccount.findOne({accountKey:alice}).lean();

@@ -47,11 +47,14 @@ test('all protected handlers reject anonymous requests before accessing database
 });
 test('orders and portfolio reads are scoped to signed user, never request body', async () => {
  for (const [route,model] of [['orders','Order'],['holdings','Holding'],['positions','Holding']]) {
-  const handler=require(`../dashboard/api/${route}`); let query;
+  const handler=require(`../dashboard/api/${route}`); const queries=[];
   const original=mongoose.models[model].find;
-  mongoose.models[model].find=q=>{query=q; return {sort(){return this;},limit(){return this;},lean:async()=>[]};};
-  try { const res=response(); await handler(request('GET',owner,{userId:other}),res); assert.deepEqual(query,{userId:owner}); assert.equal(res.code,200); }
-  finally { mongoose.models[model].find=original; }
+  const originalOrders=mongoose.models.Order.find;
+  const fakeFind=q=>{queries.push(q); return {sort(){return this;},limit(){return this;},lean:async()=>[],then(resolve){resolve([]);}};};
+  mongoose.models.Order.find=fakeFind;
+  mongoose.models[model].find=fakeFind;
+  try { const res=response(); await handler(request('GET',owner,{userId:other}),res); assert.ok(queries.every(query=>query.userId===owner)); assert.equal(res.code,200); }
+  finally { mongoose.models[model].find=original; mongoose.models.Order.find=originalOrders; }
  }
 });
 test('webhook authenticates exact raw body without user cookies', async () => {

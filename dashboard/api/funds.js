@@ -4,6 +4,7 @@ const { connectDatabase } = require("../lib/database");
 const { FundAccount, responseAccount } = require("../lib/funds");
 const { Transfer } = require("../lib/trading-models");
 const { ensureAccount, fail, paise, requestId } = require("../lib/accounts");
+const { settleDueOrders } = require("../lib/trading");
 module.exports = async (req, res) => {
   const user = requireUser(req, res); if (!user) return;
   if (!["GET", "POST"].includes(req.method)) return res.status(405).json({ error: "Method not allowed" });
@@ -11,7 +12,10 @@ module.exports = async (req, res) => {
   try {
     await connectDatabase();
     const account = await ensureAccount(user.sub);
-    if (req.method === "GET") return res.json(responseAccount(account));
+    if (req.method === "GET") {
+      await settleDueOrders(user.sub);
+      return res.json(responseAccount(await FundAccount.findOne({ accountKey: user.sub })));
+    }
     const type = String(req.body?.type || "").toUpperCase();
     const amount = paise(req.body?.amount);
     const key = requestId(req.body?.requestId);

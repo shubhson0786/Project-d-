@@ -14,7 +14,10 @@ const orderSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   totalPaise: { type: Number, required: true },
   mode: { type: String, enum: ["BUY", "SELL"], required: true },
-  status: { type: String, enum: ["FILLED"], default: "FILLED" },
+  status: { type: String, enum: ["OPEN", "FILLED", "REJECTED", "CANCELLED"], default: "FILLED" },
+  orderType: { type: String, enum: ["MARKET"], default: "MARKET" },
+  filledAt: { type: Date },
+  rejectionReason: { type: String },
   realizedProfitPaise: { type: Number, default: 0 },
 }, { timestamps: true });
 orderSchema.index({ userId: 1, requestId: 1 }, { unique: true, partialFilterExpression: { requestId: { $type: "string" } } });

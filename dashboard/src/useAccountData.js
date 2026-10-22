@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import api from "./api";
 export const accountChanged = () => window.dispatchEvent(new Event("stashflow:account"));
 export const money = value => Number(value || 0).toLocaleString("en-IN", { style: "currency", currency: "INR" });
-export default function useAccountData(path, initial = null) {
+export default function useAccountData(path, initial = null, refreshMs = 15000) {
   const [data, setData] = useState(initial);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -18,8 +18,8 @@ export default function useAccountData(path, initial = null) {
   useEffect(() => {
     window.addEventListener("stashflow:account", refresh);
     window.addEventListener("focus", refresh);
-    const interval = window.setInterval(refresh, 15000);
+    const interval = window.setInterval(refresh, refreshMs);
     return () => { window.removeEventListener("stashflow:account", refresh); window.removeEventListener("focus", refresh); window.clearInterval(interval); };
-  }, [refresh]);
+  }, [refresh, refreshMs]);
   return { data, error, loading, refresh, setData };
 }

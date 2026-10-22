@@ -1,10 +1,12 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import GeneralContext from "./GeneralContext";
 import { accountChanged, money } from "../useAccountData";
 import "./BuyActionWindow.css";
 const BuyActionWindow = ({ uid, mode = "BUY", marketPrice = 0 }) => {
   const { closeOrderWindow } = useContext(GeneralContext);
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(marketPrice);
   const [cash, setCash] = useState(null);
@@ -39,7 +41,7 @@ const BuyActionWindow = ({ uid, mode = "BUY", marketPrice = 0 }) => {
     busy.current = true; setSubmitting(true); setError("");
     try {
       await api.post("/api/orders", { name: uid, qty, mode, orderType: "MARKET", requestId: key.current });
-      accountChanged(); closeOrderWindow();
+      accountChanged(); closeOrderWindow(); navigate("/orders");
     } catch (requestError) { setError(requestError.response?.data?.error || "Order result unknown. Retry unchanged to safely check the same order."); }
     finally { busy.current = false; setSubmitting(false); }
   };
@@ -52,9 +54,9 @@ const BuyActionWindow = ({ uid, mode = "BUY", marketPrice = 0 }) => {
       </div><p>Available cash: {cash == null ? "Loading…" : money(cash)} · Shares owned: {owned}</p>
       <div className="order-summary"><span>Estimated order value</span><strong>{money(valid ? total : 0)}</strong></div>
       {valid && !affordable && <p role="alert" className="order-error">{isBuy ? "Add funds to buy this quantity." : "You cannot sell more shares than you own."}</p>}
-      <p className="paper-label">Fills immediately at the server's simulated market price, which may change before execution. No real stock is traded.</p>
+      <p className="paper-label">Clicking places a paper market order. It starts as Open; the simulated fill is checked shortly afterward at the then-current price. Funds and shares change only if it fills. Check Orders for its status. No real stock is traded.</p>
       {error && <p role="alert" className="order-error">{error}</p>}</div>
-      <footer className="order-footer"><span>Paper trading</span><div><button type="button" className="order-button secondary" onClick={dismiss} disabled={submitting}>Cancel</button><button className="order-button primary" type="submit" disabled={!valid || !affordable || submitting}>{submitting ? "Executing…" : `${isBuy ? "Buy" : "Sell"} ${uid}`}</button></div></footer>
+      <footer className="order-footer"><span>Paper trading</span><div><button type="button" className="order-button secondary" onClick={dismiss} disabled={submitting}>Close</button><button className="order-button primary" type="submit" disabled={!valid || !affordable || submitting}>{submitting ? "Placing…" : `Place ${isBuy ? "buy" : "sell"} order`}</button></div></footer>
     </form>
   </div>;
 };
