@@ -29,7 +29,9 @@ const Funds = () => {
   const [notice, setNotice] = useState("");
 
   const numericAmount = Number(amount);
-  const validAmount = Number.isFinite(numericAmount) && numericAmount >= 1 && numericAmount <= 500000;
+  const validAmount = Number.isFinite(numericAmount) && numericAmount >= 1 && numericAmount <= 500000
+    && Number.isSafeInteger(Math.round(numericAmount * 100))
+    && Math.abs(numericAmount * 100 - Math.round(numericAmount * 100)) < 0.00001;
   const projectedBalance = useMemo(() => {
     if (!account || !validAmount || !action) return account?.balance || 0;
     return action === "ADD" ? account.balance + numericAmount : account.balance - numericAmount;
@@ -66,7 +68,7 @@ const Funds = () => {
     event.preventDefault();
     if (busy.current) return;
     setError("");
-    if (!validAmount) return setError("Enter an amount between ₹1 and ₹5,00,000.");
+    if (!validAmount) return setError("Enter an amount between ₹1 and ₹5,00,000, with at most two decimal places.");
     if (action === "WITHDRAW" && numericAmount > account.balance) {
       return setError("Withdrawal amount cannot exceed your available cash.");
     }

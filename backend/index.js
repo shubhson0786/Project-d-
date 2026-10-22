@@ -1,4 +1,7 @@
 require("dotenv").config();
+// The dashboard's local API credentials live in its own ignored .env file.
+// Load missing values for the standalone backend without overriding backend/.env.
+require("dotenv").config({ path: require("path").join(__dirname, "..", "dashboard", ".env") });
 const express = require("express");
 const cors = require("cors");
 const { connectDatabase } = require("../dashboard/lib/database");

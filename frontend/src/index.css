@@ -1,4 +1,5 @@
 body {
+  --site-accent: #2d503b;
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #13213c;
@@ -77,4 +78,59 @@ a { color: #e95f3b; }
   .signup-shell { grid-template-columns: 1fr; gap: 2.5rem; }
   .signup-intro h1 { font-size: 2.75rem; }
   .signup-password-row { grid-template-columns: 1fr; gap: 0; }
+}
+
+/* Shared visual language: quiet surfaces, clear type, restrained controls. */
+body { background: #fafbf7; color: #283c31; font-family: 'Segoe UI', Arial, sans-serif; }
+a { color: #315e46; }
+.site-width { width: min(1120px, calc(100% - 64px)); margin-left: auto; margin-right: auto; box-sizing: border-box; }
+.site-header { background: #fafbf7; border-bottom: 1px solid #e2e6dd; }
+.site-nav { min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 30px; }
+.wordmark { font-size: 28px; font-weight: 700; color: #283c31; letter-spacing: -1.3px; text-decoration: none; }
+.wordmark:hover { color: #315e46; }.wordmark span { color: #6b8e65; }
+.site-nav-links { display: flex; gap: 29px; align-items: center; }
+.site-nav-links a { font-size: 13px; color: #677168; text-decoration: none; }
+.site-nav-links a:hover, .site-nav-links a.active { color: #244b35; }
+.site-nav-links .nav-login { margin-left: 28px; color: #283c31; }
+.site-nav-links .nav-signup { padding: 11px 17px; border: 1px solid #cbd5c7; border-radius: 3px; color: #283c31; }
+.mobile-nav-toggle { display: none; }
+.primary-link { display: inline-flex; gap: 25px; align-items: center; justify-content: space-between; background: #2d503b; color: #fff; padding: 14px 21px; border-radius: 3px; text-decoration: none; font-size: 13px; white-space: nowrap; }
+.primary-link:hover { background: #1d3d29; color: white; }
+a:focus-visible, button:focus-visible { outline: 2px solid #477b56; outline-offset: 4px; }
+.account-invitation { padding-top: 72px; padding-bottom: 72px; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.account-invitation h2 { font-family: Georgia, serif; font-weight: 400; font-size: 32px; }
+.account-invitation p { color: #788173; font-size: 14px; margin-bottom: 0; }
+.site-footer { background: #f0f2eb; border-top: 1px solid #e0e5d9; padding: 42px 0 22px; }
+.footer-main { display: flex; justify-content: space-between; gap: 30px; }
+.footer-main p { margin-top: 10px; font-size: 12px; color: #7b8475; }
+.footer-main nav { display: flex; flex-wrap: wrap; gap: 28px; padding-top: 12px; }
+.footer-main nav a { font-size: 12px; color: #52624c; text-decoration: none; }
+.footer-main nav a:hover { text-decoration: underline; }
+.footer-bottom { display: flex; justify-content: space-between; gap: 25px; margin-top: 35px; padding-top: 20px; border-top: 1px solid #dce2d4; color: #7b8475; font-size: 10px; }
+.footer-bottom p { margin: 0; }
+.btn-primary { background: #2d503b; border-color: #2d503b; border-radius: 4px; }
+.btn-primary:hover { background: #1d3d29; border-color: #1d3d29; }
+.brand-mark, .mini-mark { background: #2d503b; border-radius: 4px; }
+.section-art, .founder-portrait { border-radius: 5px; box-shadow: none; }
+.eyebrow, .signup-kicker { color: #52704e; }
+.signup-page { background: #fafbf7; }
+.signup-card { border-radius: 6px; box-shadow: none; border-color: #dce2d6; background: white; }
+.signup-intro h1 { font-family: Georgia, serif; font-weight: 400; color: #283c31; letter-spacing: -.035em; }
+.signup-benefits span { color: #52704e; border-color: #dce2d6; border-radius: 4px; }
+.signup-card input:not([type="checkbox"]), .signup-submit, .auth-tabs, .auth-tabs button { border-radius: 4px; }
+.signup-submit { background: #2d503b; }.signup-submit:hover:not(:disabled) { background: #1d3d29; }
+.signup-signin button { color: #315e46; }
+.signup-card input:not([type="checkbox"]):focus { border-color: #52704e; box-shadow: 0 0 0 3px #e8eee3; }
+.signup-checkbox input { accent-color: #315e46; }
+@media(max-width: 850px) {
+  .site-nav { flex-wrap: wrap; min-height: 74px; padding-top: 16px; padding-bottom: 16px; }
+  .mobile-nav-toggle { display: block; background: transparent; color: #315e46; border: 1px solid #cbd5c7; padding: 7px 12px; border-radius: 3px; font-size: 13px; }
+  .site-nav-links { display: none; width: 100%; flex-wrap: wrap; gap: 22px; padding: 12px 0; }
+  .site-nav-links.is-open { display: flex; }.site-nav-links .nav-login { margin-left: 0; }
+}
+@media(max-width: 650px) {
+  .site-width { width: calc(100% - 40px); }
+  .account-invitation, .footer-main, .footer-bottom { flex-direction: column; align-items: flex-start; }
+  .account-invitation { padding-top: 50px; padding-bottom: 50px; }
+  .footer-main nav { gap: 18px; }.footer-bottom { gap: 10px; }
 }

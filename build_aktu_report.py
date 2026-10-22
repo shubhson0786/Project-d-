@@ -225,45 +225,37 @@ pre.page_width = Inches(8.27); pre.page_height = Inches(11.69)
 pre.top_margin = Inches(1.25); pre.bottom_margin = Inches(1.05); pre.left_margin = Inches(1.5); pre.right_margin = Inches(0.85)
 set_page_number_format(pre, "lowerRoman", 1)
 
-centered("BONAFIDE CERTIFICATE", 16, True, 24)
-add_p("This is to certify that the project report entitled “Stashflow: Web Based Investment and Trading Dashboard” is a bonafide record of the project work carried out by the student or project team named below under my supervision and guidance. The work is submitted to Dr A P J Abdul Kalam Technical University, Uttar Pradesh, Lucknow, in partial fulfilment of the requirements for the award of the degree of Bachelor of Technology in Computer Science and Engineering (Artificial Intelligence and Machine Learning) during the academic session 2026–2027.")
-add_p("To the best of my knowledge, the work presented in this report has not been submitted elsewhere for the award of any other degree or diploma. The implementation, observations, limitations, and results stated in the report have been examined for academic submission.")
+centered("CERTIFICATE OF APPROVAL", 14, True, 24)
+add_p("This is to certify that Shubham Sonkar (Roll No. 2401661530066), Mradul Singh (Roll No. 2401661530035), Divya Tiwari (Roll No. 2401661530018), and Ashi Shukla (Roll No. 2401661530013) have completed the mini project entitled “Stashflow: Web Based Investment and Trading Dashboard” under the guidance of Sarvesh Sir. The report is submitted in partial fulfilment of the Bachelor of Technology course in Computer Science and Engineering (Artificial Intelligence and Machine Learning) at Dr Ambedkar Institute of Technology for Divyangjan Kanpur during the academic session 2026–2027.")
+add_p("To the best of our knowledge, this work has not been submitted elsewhere for the award of any degree or diploma. The project work and report have been examined for academic submission.")
 doc.add_paragraph("\n")
 add_table(["Student Name", "University Roll Number", "Signature"], [[name, roll, "________________"] for name, roll in MEMBERS], [2.4, 2.4, 1.6])
 doc.add_paragraph("\n\n")
 add_table(["Project Guide", "Head of Department"], [[f"Name: {GUIDE_NAME}\nSignature: _____________________\nDate: _________________________", "Name: ________________________\nSignature: _____________________\nDate: _________________________"]], [3.2, 3.2])
 centered("Department Seal", 10, False, 0)
 
-new_page(); centered("STUDENT DECLARATION", 16, True, 24)
-add_p("We hereby declare that the project report entitled “Stashflow: Web Based Investment and Trading Dashboard” is an original account of the work undertaken by us under the supervision of the project guide named in this report. The source code, design decisions, testing evidence, and technical discussion have been prepared for this academic project. Wherever the ideas, documentation, or software of other authors and organisations have been used, suitable acknowledgement has been provided in the references.")
-add_p("We further declare that this report has not been submitted, either in full or in part, for the award of any degree or diploma at this or any other university. We accept responsibility for the correctness of the reported work and understand that the institution may verify the report for originality and technical accuracy.")
+new_page(); centered("CANDIDATE DECLARATION", 14, True, 24)
+add_p("We certify that the mini project report entitled “Stashflow: Web Based Investment and Trading Dashboard” is an authentic record of work carried out by us under the supervision of Sarvesh Sir at Dr Ambedkar Institute of Technology for Divyangjan Kanpur. The source code, design decisions, testing evidence, and technical discussion have been prepared for this academic project. Wherever the ideas, documentation, or software of other authors and organisations have been used, suitable acknowledgement has been provided in the references.")
+add_p("The matter presented in this report has not been submitted elsewhere, in full or in part, for the award of any degree or diploma. We accept responsibility for the correctness and originality of the reported work.")
 doc.add_paragraph("\n\n")
 add_table(["Student Name", "University Roll Number", "Signature and Date"], [[name, roll, "________________________"] for name, roll in MEMBERS], [2.3, 2.3, 1.8])
+add_p("This is to certify that the above declaration is correct to the best of our knowledge.")
+add_table(["Date", "Project Guide Signature"], [["____________________", "____________________________"]], [2.5, 3.9])
 
-new_page(); centered("ACKNOWLEDGEMENT", 16, True, 24)
-add_p("We express our sincere gratitude to our project guide for continuous guidance, technical suggestions, and careful review during the development of Stashflow. The guidance helped us convert an initial idea into a structured web application and encouraged us to evaluate the system not only for visible functionality but also for data validation, security, reliability, and deployment behaviour.")
+new_page(); centered("ACKNOWLEDGEMENT", 14, True, 24)
+add_p("We express our sincere gratitude to Sarvesh Sir, our project guide, for his guidance, technical suggestions, and careful review during the development of Stashflow at Dr Ambedkar Institute of Technology for Divyangjan Kanpur. His support helped us turn the project idea into a structured web application and encouraged us to evaluate the system for functionality, data validation, security, reliability, and deployment behaviour.")
 add_p("We thank the Head of the Department of Computer Science and Engineering (Artificial Intelligence and Machine Learning) and all faculty members for providing the academic environment and resources required for this work. We also acknowledge Dr A P J Abdul Kalam Technical University, Uttar Pradesh, for the curriculum that motivated the application of software engineering, database management, web technology, and information security concepts in an integrated project.")
 add_p("Finally, we thank our family members, classmates, and test users for their encouragement and practical feedback. Their observations helped improve navigation, form validation, responsive presentation, and the clarity of the investment dashboard.")
 doc.add_paragraph("\n\n")
 add_table(["Student Name", "Signature"], [[name, "____________________________"] for name, _ in MEMBERS], [3.2, 3.2])
 
-new_page(); centered("ABSTRACT", 16, True, 18)
-add_p("Stashflow is a full-stack academic prototype that demonstrates how a modern web application can present investment information, accept simulated trading orders, manage a virtual fund balance, and integrate a payment gateway in test mode. The system separates the public landing experience from the trading dashboard. The landing application presents product information, pricing, support content, and a combined registration and login interface. The dashboard provides watchlist search, portfolio summaries, holdings, positions, order entry, order history, fund deposits, withdrawals, and transaction history.")
-add_p("The user interfaces are implemented in React and use client-side routing for page navigation. MongoDB stores user registrations, holdings, positions, orders, fund accounts, transaction records, and Razorpay order references. Node.js serverless API functions perform database operations, validate requests, hash account passwords with bcrypt, create Razorpay orders, and verify payment signatures using HMAC SHA-256. Vercel hosts the landing site and dashboard as separate deployments, while Razorpay Test Mode provides a safe simulated payment experience without moving real money.")
-add_p("The implemented prototype successfully builds and deploys, demonstrates responsive investment workflows, and prevents duplicate crediting of the same verified payment through persistent payment-order state and database transactions. Review and testing also identify important limitations: dashboard APIs require complete session enforcement, financial records require per-user ownership, automated tests are limited, dependency upgrades are needed, and payment webhooks should be added before any live use. The work therefore meets its academic objective as a demonstrable prototype while providing a clear roadmap for production hardening.")
-
-new_page(); centered("TABLE OF CONTENTS", 16, True, 12)
-p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-r = p.add_run(); font(r, 12); field(r, 'TOC \\o "1-3" \\h \\z \\u')
-add_p("Note: In Microsoft Word, select the table and choose Update Field if page numbers do not refresh automatically.")
-
-new_page(); centered("LIST OF FIGURES", 16, True, 12)
+new_page(); centered("LIST OF FIGURES", 14, True, 12)
 add_table(["Figure", "Title"], [
     ["4.1", "Logical architecture of Stashflow"], ["4.2", "Authentication request flow"],
     ["4.3", "Razorpay test payment sequence"], ["5.1", "Dashboard navigation structure"],
     ["5.2", "Fund transaction state transition"],
 ], [1.1, 5.3])
-centered("LIST OF TABLES", 16, True, 12)
+centered("LIST OF TABLES", 14, True, 12)
 add_table(["Table", "Title"], [
     ["2.1", "Comparison of the existing and proposed approaches"], ["3.1", "Functional requirements"],
     ["3.2", "Non-functional requirements"], ["3.3", "Hardware and software requirements"],
@@ -272,7 +264,7 @@ add_table(["Table", "Title"], [
     ["7.1", "Risk and mitigation summary"],
 ], [1.1, 5.3])
 
-new_page(); centered("LIST OF ABBREVIATIONS", 16, True, 12)
+new_page(); centered("LIST OF ABBREVIATIONS", 14, True, 12)
 add_table(["Abbreviation", "Meaning"], [
     ["API", "Application Programming Interface"], ["CRUD", "Create Read Update Delete"],
     ["HMAC", "Hash based Message Authentication Code"], ["HTTP", "Hypertext Transfer Protocol"],
@@ -281,6 +273,15 @@ add_table(["Abbreviation", "Meaning"], [
     ["SPA", "Single Page Application"], ["UI", "User Interface"],
     ["UPI", "Unified Payments Interface"], ["UX", "User Experience"],
 ], [1.5, 4.9])
+
+new_page(); centered("ABSTRACT", 14, True, 18)
+add_p("Stashflow is a full-stack academic prototype that demonstrates how a modern web application can present investment information, accept simulated trading orders, manage a virtual fund balance, and integrate a payment gateway in test mode. The system separates the public landing experience from the trading dashboard. The landing application presents product information, pricing, support content, and a combined registration and login interface. The dashboard provides watchlist search, portfolio summaries, holdings, positions, order entry, order history, fund deposits, withdrawals, and transaction history.")
+add_p("The user interfaces are implemented in React and use client-side routing for page navigation. MongoDB stores user registrations, holdings, positions, orders, fund accounts, transaction records, and Razorpay order references. Node.js serverless API functions perform database operations, validate requests, hash account passwords with bcrypt, create Razorpay orders, and verify payment signatures using HMAC SHA-256. Vercel hosts the landing site and dashboard as separate deployments, while Razorpay Test Mode provides a safe simulated payment experience without moving real money.")
+add_p("The implemented prototype successfully builds and deploys, demonstrates responsive investment workflows, and prevents duplicate crediting of the same verified payment through persistent payment-order state and database transactions. Review and testing also identify important limitations: dashboard APIs require complete session enforcement, financial records require per-user ownership, automated tests are limited, dependency upgrades are needed, and payment webhooks should be added before any live use. The work therefore meets its academic objective as a demonstrable prototype while providing a clear roadmap for production hardening.")
+
+new_page(); centered("LIST OF CONTENTS", 14, True, 12)
+p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+r = p.add_run(); font(r, 12); field(r, 'TOC \\o "1-3" \\h \\z \\u')
 
 # Main section
 main = doc.add_section(WD_SECTION.NEW_PAGE)
