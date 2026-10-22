@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const { requireUser } = require("../lib/auth");
 const { connectDatabase } = require("../lib/database");
 const { FundAccount, responseAccount } = require("../lib/funds");
-const { Transfer } = require("../lib/trading-models");
+const { Transfer, Order } = require("../lib/trading-models");
 const { ensureAccount, fail, paise, requestId } = require("../lib/accounts");
 const { settleDueOrders } = require("../lib/trading");
 module.exports = async (req, res) => {
@@ -32,10 +32,14 @@ module.exports = async (req, res) => {
         result = await FundAccount.findOne({ accountKey: user.sub }).session(session); return;
       }
       const filter = { accountKey: user.sub };
-      if (type === "WITHDRAW") filter.balancePaise = { $gte: amount };
+      if (type === "WITHDRAW") {
+        const pending = await Order.find({ userId: user.sub, mode: "BUY", status: { $in: ["OPEN", "PARTIALLY_FILLED"] } }).session(session);
+        const reserved = pending.reduce((sum, order) => sum + Math.round((order.orderPricePaise || order.price * 100) * (order.qty - (order.filledQty || 0))), 0);
+        filter.balancePaise = { $gte: amount + reserved };
+      }
       const delta = type === "ADD" ? amount : -amount;
       result = await FundAccount.findOneAndUpdate(filter, { $inc: { balancePaise: delta, balance: delta / 100 }, $push: { transactions: { type, amount: amount / 100, method, requestId: key } } }, { new: true, session });
-      if (!result) throw fail("Insufficient available cash for this withdrawal.", 409);
+      if (!result) throw fail("Insufficient uncommitted cash for this withdrawal. Cancel pending buy orders first.", 409);
       await Transfer.create([{ userId: user.sub, requestId: key, type, amountPaise: amount, method }], { session });
     });
     return res.json(responseAccount(result));

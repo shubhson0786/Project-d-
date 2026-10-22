@@ -50,11 +50,13 @@ test('orders and portfolio reads are scoped to signed user, never request body',
   const handler=require(`../dashboard/api/${route}`); const queries=[];
   const original=mongoose.models[model].find;
   const originalOrders=mongoose.models.Order.find;
+  const originalDistinct=mongoose.models.Order.distinct;
   const fakeFind=q=>{queries.push(q); return {sort(){return this;},limit(){return this;},lean:async()=>[],then(resolve){resolve([]);}};};
   mongoose.models.Order.find=fakeFind;
+  mongoose.models.Order.distinct=async()=>[];
   mongoose.models[model].find=fakeFind;
   try { const res=response(); await handler(request('GET',owner,{userId:other}),res); assert.ok(queries.every(query=>query.userId===owner)); assert.equal(res.code,200); }
-  finally { mongoose.models[model].find=original; mongoose.models.Order.find=originalOrders; }
+  finally { mongoose.models[model].find=original; mongoose.models.Order.find=originalOrders; mongoose.models.Order.distinct=originalDistinct; }
  }
 });
 test('webhook authenticates exact raw body without user cookies', async () => {
