@@ -1,10 +1,8 @@
 const mongoose = require("mongoose");
 const { FundAccount } = require("./funds");
-const { Holding, Order } = require("./trading-models");
-const { quote } = require("./market");
+const { Holding, Order, Liquidity } = require("./trading-models");
+const { quote, simulatedLiquidity } = require("./market");
 const { fail, requestId, ensureAccount } = require("./accounts");
-
-const FILL_DELAY_MS = 3000;
 
 function sameRequest(order, input) {
   if (order.name !== input.name || order.mode !== input.mode || order.qty !== input.qty) throw fail("This request ID was already used for a different order.", 409);
@@ -32,7 +30,7 @@ async function executeOrder(userId, input) {
     if ((holding?.qty || 0) < qty) throw fail("You do not own enough shares to sell this quantity.", 409);
   }
   try {
-    return await Order.create({ userId, requestId: key, name, qty, price: market.price, totalPaise: estimatedTotal, mode, orderType: "MARKET", status: "OPEN" });
+    return await Order.create({ userId, requestId: key, name, qty, price: market.price, totalPaise: 0, estimatedTotalPaise: estimatedTotal, mode, orderType: "MARKET", status: "OPEN", filledQty: 0 });
   } catch (error) {
     if (error.code === 11000) {
       const replay = await Order.findOne({ userId, requestId: key });
@@ -43,36 +41,46 @@ async function executeOrder(userId, input) {
 }
 
 async function settleOrder(order) {
+  const depth = simulatedLiquidity(order.name, order.mode);
+  if (!depth) return;
+  const bucketKey = { name: order.name, mode: order.mode, tick: depth.tick };
+  try {
+    await Liquidity.updateOne(bucketKey, { $setOnInsert: { remainingQty: depth.availableQty } }, { upsert: true });
+  } catch (error) { if (error.code !== 11000) throw error; }
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
-      const current = await Order.findOne({ _id: order._id, status: "OPEN" }).session(session);
+      const current = await Order.findOne({ _id: order._id, status: { $in: ["OPEN", "PARTIALLY_FILLED"] } }).session(session);
       if (!current) return;
+      const bucket = await Liquidity.findOne(bucketKey).session(session);
+      if (!bucket?.remainingQty) return;
+      const fillQty = Math.min(current.qty - (current.filledQty || 0), bucket.remainingQty);
+      if (fillQty < 1) return;
       const market = quote(current.name);
-      if (!market || !Number.isSafeInteger(market.pricePaise * current.qty)) {
+      if (!market || !Number.isSafeInteger(market.pricePaise * fillQty)) {
         current.status = "REJECTED";
         current.rejectionReason = "Simulated quote is unavailable.";
         await current.save({ session });
         return;
       }
-      const totalPaise = market.pricePaise * current.qty;
+      const totalPaise = market.pricePaise * fillQty;
       const holding = await Holding.findOne({ userId: current.userId, name: current.name }).session(session);
       const oldQty = holding?.qty || 0;
       const oldCost = holding?.costBasisPaise ?? Math.round((holding?.get("avg") || 0) * oldQty * 100);
-      if (current.mode === "SELL" && oldQty < current.qty) {
+      if (current.mode === "SELL" && oldQty < fillQty) {
         current.status = "REJECTED";
         current.rejectionReason = "Not enough shares available at execution.";
         await current.save({ session });
         return;
       }
-      const allocatedCost = current.mode === "SELL" ? Math.round(oldCost * current.qty / oldQty) : 0;
+      const allocatedCost = current.mode === "SELL" ? Math.round(oldCost * fillQty / oldQty) : 0;
       const realizedProfitPaise = current.mode === "SELL" ? totalPaise - allocatedCost : 0;
       const delta = current.mode === "BUY" ? -totalPaise : totalPaise;
       const filter = { accountKey: current.userId };
       if (current.mode === "BUY") filter.balancePaise = { $gte: totalPaise };
       const account = await FundAccount.findOneAndUpdate(filter, {
         $inc: { balancePaise: delta, balance: delta / 100, realizedProfitPaise },
-        $push: { transactions: { type: current.mode, amount: totalPaise / 100, method: "TRADE", symbol: current.name, qty: current.qty, requestId: current.requestId } },
+        $push: { transactions: { type: current.mode, amount: totalPaise / 100, method: "TRADE", symbol: current.name, qty: fillQty, requestId: current.requestId } },
       }, { new: true, session });
       if (!account) {
         current.status = "REJECTED";
@@ -80,29 +88,32 @@ async function settleOrder(order) {
         await current.save({ session });
         return;
       }
-      const nextQty = current.mode === "BUY" ? oldQty + current.qty : oldQty - current.qty;
+      bucket.remainingQty -= fillQty;
+      await bucket.save({ session });
+      const nextQty = current.mode === "BUY" ? oldQty + fillQty : oldQty - fillQty;
       if (!Number.isSafeInteger(nextQty)) throw fail("Holding quantity is too large.");
       if (nextQty === 0) await Holding.deleteOne({ userId: current.userId, name: current.name }, { session });
       else await Holding.updateOne({ userId: current.userId, name: current.name }, { $set: { qty: nextQty, costBasisPaise: current.mode === "BUY" ? oldCost + totalPaise : oldCost - allocatedCost } }, { upsert: true, session, runValidators: true });
-      current.price = market.price;
-      current.totalPaise = totalPaise;
-      current.realizedProfitPaise = realizedProfitPaise;
-      current.status = "FILLED";
-      current.filledAt = new Date();
+      current.filledQty = (current.filledQty || 0) + fillQty;
+      current.totalPaise += totalPaise;
+      current.price = Math.round(current.totalPaise / current.filledQty) / 100;
+      current.realizedProfitPaise += realizedProfitPaise;
+      current.status = current.filledQty === current.qty ? "FILLED" : "PARTIALLY_FILLED";
+      if (current.status === "FILLED") current.filledAt = new Date();
       await current.save({ session });
     });
   } finally { await session.endSession(); }
 }
 
 async function settleDueOrders(userId) {
-  const due = await Order.find({ userId, status: "OPEN", createdAt: { $lte: new Date(Date.now() - FILL_DELAY_MS) } }).sort({ createdAt: 1 }).limit(20);
+  const due = await Order.find({ userId, status: { $in: ["OPEN", "PARTIALLY_FILLED"] } }).sort({ createdAt: 1 }).limit(20);
   for (const order of due) await settleOrder(order);
 }
 
 async function cancelOrder(userId, orderId) {
   if (!mongoose.isValidObjectId(orderId)) throw fail("Invalid order ID.");
-  const order = await Order.findOneAndUpdate({ _id: orderId, userId, status: "OPEN" }, { $set: { status: "CANCELLED" } }, { new: true });
-  if (!order) throw fail("Only open orders can be cancelled.", 409);
+  const order = await Order.findOneAndUpdate({ _id: orderId, userId, status: { $in: ["OPEN", "PARTIALLY_FILLED"] } }, { $set: { status: "CANCELLED" } }, { new: true });
+  if (!order) throw fail("Only open or partially filled orders can be cancelled.", 409);
   return order;
 }
 

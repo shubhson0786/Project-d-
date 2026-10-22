@@ -9,4 +9,14 @@ function quotes(now = Date.now()) {
   });
 }
 function quote(name) { return quotes().find(item => item.name === name); }
-module.exports = { quotes, quote };
+function simulatedLiquidity(name, mode, now = Date.now()) {
+  const names = Object.keys(catalog);
+  const index = names.indexOf(name);
+  if (index < 0 || !["BUY", "SELL"].includes(mode)) return null;
+  const tick = Math.floor(now / 15000);
+  // Sparse, deterministic demo counterparties: sell orders need buyers;
+  // buy orders need sellers. This is not real exchange depth.
+  const active = tick % 4 === (index + (mode === "SELL" ? 2 : 0)) % 4;
+  return { tick, availableQty: active ? 1 + ((tick + index) % 3) : 0 };
+}
+module.exports = { quotes, quote, simulatedLiquidity };

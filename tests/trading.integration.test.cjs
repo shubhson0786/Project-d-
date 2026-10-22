@@ -18,9 +18,10 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
   t.after(async () => { await mongoose.disconnect(); await require('../frontend/node_modules/mongoose').disconnect(); await repl.stop(); });
   process.env.MONGO_URL = repl.getUri('trading');
   const { connectDatabase } = require('../dashboard/lib/database'); await connectDatabase();
-  const { Holding, Order, Transfer } = require('../dashboard/lib/trading-models');
+  const { Holding, Order, Transfer, Liquidity } = require('../dashboard/lib/trading-models');
+  const { simulatedLiquidity } = require('../dashboard/lib/market');
   const { FundAccount, PaymentOrder } = require('../dashboard/lib/funds');
-  await Promise.all([Holding.init(), Order.init(), Transfer.init(), FundAccount.init(), PaymentOrder.init()]);
+  await Promise.all([Holding.init(), Order.init(), Transfer.init(), Liquidity.init(), FundAccount.init(), PaymentOrder.init()]);
   const { app } = require('../backend/index');
   const server = app.listen(0,'127.0.0.1'); await new Promise(resolve => server.once('listening',resolve));
   t.after(() => { server.closeAllConnections(); server.close(); });
@@ -31,9 +32,13 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
   }
   const transfer = (user,type,amount,requestId=randomUUID()) => api('funds',user,{type,amount,requestId});
   const placeTrade = (user,name,qty,mode,requestId=randomUUID(),extra={}) => api('orders',user,{name,qty,mode,requestId,...extra});
+  async function giveLiquidity(name, mode, quantity = 100000) {
+    const { tick } = simulatedLiquidity(name, mode);
+    await Liquidity.updateOne({ name, mode, tick }, { $set: { remainingQty: quantity } }, { upsert: true });
+  }
   async function fill(user, placed) {
     if (placed.status !== 201) return placed;
-    await Order.updateOne({ _id: placed.data._id }, { $set: { createdAt: new Date(Date.now() - 5000) } });
+    await giveLiquidity(placed.data.name, placed.data.mode);
     const orders = (await api('orders', user)).data;
     return { ...placed, data: orders.find(order => order._id === placed.data._id) };
   }
@@ -53,7 +58,7 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     assert.equal(deposit.status, 200);
     const buy = await fetch(base + '/api/orders', { method: 'POST', headers: { cookie: first, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'WIPRO', qty: 1, mode: 'BUY', requestId: randomUUID() }) });
     assert.equal(buy.status, 201);
-    await Order.updateOne({ _id: (await buy.json())._id }, { $set: { createdAt: new Date(Date.now() - 5000) } });
+    await giveLiquidity('WIPRO', 'BUY');
     const login = await authenticate('Diana', 'LOGIN');
     const owned = await (await fetch(base + '/api/holdings', { headers: { cookie: login } })).json();
     assert.equal(owned[0].qty, 1);
@@ -109,6 +114,19 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     assert.equal((await transfer(alice,'ADD',1,key)).status,409);
     assert.equal((await transfer(alice,'ADD',0.001)).status,400);
   });
+  await t.test('no simulated seller leaves a buy open without changing cash or holdings', async () => {
+    const placed = await placeTrade(alice, 'TCS', 1, 'BUY');
+    assert.equal(placed.status, 201);
+    const { tick } = simulatedLiquidity('TCS', 'BUY');
+    await Liquidity.updateOne({ name: 'TCS', mode: 'BUY', tick }, { $set: { remainingQty: 0 } }, { upsert: true });
+    const orders = (await api('orders')).data;
+    assert.equal(orders.find(order => order._id === placed.data._id).status, 'OPEN');
+    assert.equal((await api('funds')).data.balance, 10000);
+    assert.deepEqual((await api('holdings')).data, []);
+    const cancelled = await fetch(base + '/api/orders', { method: 'DELETE', headers: { cookie: cookie(sign({sub:alice},'session',60000)), 'content-type':'application/json' }, body: JSON.stringify({ orderId: placed.data._id }) });
+    assert.equal(cancelled.status, 200);
+    assert.equal((await cancelled.json()).status, 'CANCELLED');
+  });
   let first;
   await t.test('buy uses server price, debits cash and creates owned shares exactly once', async () => {
     const key=randomUUID();const placed=await Promise.all([placeTrade(alice,'INFY',2,'BUY',key,{price:0.01,userId:bob}),placeTrade(alice,'INFY',2,'BUY',key,{price:0.01,userId:bob})]);
@@ -147,7 +165,7 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
     await transfer(bob,'ADD',2000);
     const results=await Promise.all([placeTrade(bob,'INFY',1,'BUY'),placeTrade(bob,'INFY',1,'BUY')]);
     assert.ok(results.every(item=>item.status===201));
-    await Promise.all(results.map(item=>Order.updateOne({_id:item.data._id},{$set:{createdAt:new Date(Date.now()-5000)}})));
+    await giveLiquidity('INFY', 'BUY');
     const settled=(await api('orders',bob)).data.filter(item=>results.some(result=>result.data._id===item._id));
     assert.deepEqual(settled.map(item=>item.status).sort(),['FILLED','REJECTED']);
     assert.equal((await api('holdings',bob)).data[0].qty,1);
@@ -156,7 +174,7 @@ test('multi-user trading with a real MongoDB replica set', { timeout: 240000 }, 
   await t.test('concurrent sells cannot sell the same share twice', async () => {
     const results=await Promise.all([placeTrade(bob,'INFY',1,'SELL'),placeTrade(bob,'INFY',1,'SELL')]);
     assert.ok(results.every(item=>item.status===201));
-    await Promise.all(results.map(item=>Order.updateOne({_id:item.data._id},{$set:{createdAt:new Date(Date.now()-5000)}})));
+    await giveLiquidity('INFY', 'SELL');
     const settled=(await api('orders',bob)).data.filter(item=>results.some(result=>result.data._id===item._id));
     assert.deepEqual(settled.map(item=>item.status).sort(),['FILLED','REJECTED']);assert.deepEqual((await api('holdings',bob)).data,[]);
   });

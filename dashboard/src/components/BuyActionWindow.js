@@ -54,7 +54,7 @@ const BuyActionWindow = ({ uid, mode = "BUY", marketPrice = 0 }) => {
       </div><p>Available cash: {cash == null ? "Loading…" : money(cash)} · Shares owned: {owned}</p>
       <div className="order-summary"><span>Estimated order value</span><strong>{money(valid ? total : 0)}</strong></div>
       {valid && !affordable && <p role="alert" className="order-error">{isBuy ? "Add funds to buy this quantity." : "You cannot sell more shares than you own."}</p>}
-      <p className="paper-label">Clicking places a paper market order. It starts as Open; the simulated fill is checked shortly afterward at the then-current price. Funds and shares change only if it fills. Check Orders for its status. No real stock is traded.</p>
+      <p className="paper-label">Clicking places a paper order. It matches only if simulated buyers or sellers are available; it may remain Open or fill partly. Funds and shares change only for filled quantity. Check Orders for status or cancellation. No real stock is traded.</p>
       {error && <p role="alert" className="order-error">{error}</p>}</div>
       <footer className="order-footer"><span>Paper trading</span><div><button type="button" className="order-button secondary" onClick={dismiss} disabled={submitting}>Close</button><button className="order-button primary" type="submit" disabled={!valid || !affordable || submitting}>{submitting ? "Placing…" : `Place ${isBuy ? "buy" : "sell"} order`}</button></div></footer>
     </form>
