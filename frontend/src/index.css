@@ -69,6 +69,11 @@ a { color: #e95f3b; }
 .signup-signin { margin-top: 1.3rem; text-align: center; }
 .signup-signin a { font-weight: 700; text-decoration: none; }
 .signup-signin button { padding: 0; border: 0; background: transparent; color: #e95f3b; font: inherit; font-weight: 700; cursor: pointer; }
+.forgot-password-link { align-self: flex-end; margin: -5px 0 12px; border: 0; padding: 0; background: transparent; color: #2867c7; font-size: .82rem; font-weight: 700; cursor: pointer; }
+.forgot-password-link:hover { text-decoration: underline; }
+.reset-demo-code { display: flex; align-items: center; gap: 8px; margin: 4px 0 16px; padding: 12px 14px; border: 1px solid #b8d4ff; border-radius: 10px; background: #eef5ff; color: #214d8f; font-size: .86rem; }
+.reset-demo-code strong { font-size: 1.05rem; letter-spacing: .16em; }
+.reset-demo-code small { margin-left: auto; color: #6b82a5; }
 
 @media (max-width: 768px) {
   .nav-link { margin-left: 0; }
